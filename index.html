@@ -81,7 +81,6 @@
             height: 100%;
             background: linear-gradient(90deg, var(--primary), var(--accent));
             border-radius: 2px;
-            transition: width 0.3s;
             animation: loadProgress 2s ease-in-out forwards;
         }
 
@@ -225,6 +224,24 @@
             border-bottom: 1px solid var(--border);
         }
 
+        .categories-nav-hint {
+            font-size: 10px;
+            color: var(--text-dim);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .categories-nav-hint .hint-key {
+            background: rgba(108,92,231,0.2);
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 9px;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
         .categories {
             display: flex;
             gap: 6px;
@@ -256,6 +273,12 @@
 
         .cat-btn.active {
             box-shadow: 0 0 15px var(--glow);
+        }
+
+        .cat-btn.cat-focused {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+            box-shadow: 0 0 12px rgba(0, 206, 201, 0.4);
         }
 
         .cat-count {
@@ -447,6 +470,7 @@
             gap: 20px;
             flex-wrap: wrap;
             justify-content: center;
+            max-width: 600px;
         }
 
         .key-hint {
@@ -744,57 +768,6 @@
             flex-wrap: wrap;
         }
 
-        /* Admin Channel List */
-        .admin-channel-list {
-            max-height: 300px;
-            overflow-y: auto;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-        }
-
-        .admin-channel-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 10px 14px;
-            border-bottom: 1px solid rgba(255,255,255,0.03);
-            transition: background 0.2s;
-        }
-
-        .admin-channel-item:hover {
-            background: rgba(108, 92, 231, 0.1);
-        }
-
-        .admin-channel-item:last-child {
-            border-bottom: none;
-        }
-
-        .admin-ch-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex: 1;
-            min-width: 0;
-        }
-
-        .admin-ch-name {
-            font-size: 13px;
-            font-weight: 500;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .admin-ch-group {
-            font-size: 11px;
-            color: var(--text-dim);
-        }
-
-        .admin-ch-actions {
-            display: flex;
-            gap: 4px;
-        }
-
         /* Login Modal */
         #loginModal {
             display: none;
@@ -915,6 +888,28 @@
             margin-top: 4px;
         }
 
+        /* Focus Mode Indicator */
+        #focusModeIndicator {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 206, 201, 0.15);
+            border: 1px solid var(--accent);
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            color: var(--accent);
+            font-weight: 600;
+            z-index: 1001;
+            display: none;
+            transition: opacity 0.3s;
+        }
+
+        #focusModeIndicator.show {
+            display: block;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             #sidebar {
@@ -967,12 +962,6 @@
                 display: flex;
             }
         }
-
-        /* EPG / Favorite indicator */
-        .fav-star {
-            color: gold;
-            font-size: 12px;
-        }
     </style>
 </head>
 <body>
@@ -1012,7 +1001,6 @@
             <button class="icon-btn" onclick="closeAdmin()">✕</button>
         </div>
         <div class="admin-body">
-            <!-- M3U URL Management -->
             <div class="admin-section">
                 <h3>📡 M3U Kaynak Yönetimi</h3>
                 <div class="form-group">
@@ -1025,7 +1013,6 @@
                 </div>
             </div>
 
-            <!-- Add Channel -->
             <div class="admin-section">
                 <h3>➕ Kanal Ekle</h3>
                 <div class="form-group">
@@ -1047,7 +1034,6 @@
                 <button class="btn btn-success" onclick="addChannel()">➕ Kanal Ekle</button>
             </div>
 
-            <!-- Edit Channel -->
             <div class="admin-section">
                 <h3>✏️ Kanal Düzenle / Sil</h3>
                 <div class="form-group">
@@ -1080,7 +1066,6 @@
                 </div>
             </div>
 
-            <!-- Password -->
             <div class="admin-section">
                 <h3>🔑 Şifre Değiştir</h3>
                 <div class="form-group">
@@ -1090,7 +1075,6 @@
                 <button class="btn btn-primary" onclick="changePassword()">🔑 Şifreyi Değiştir</button>
             </div>
 
-            <!-- Stats -->
             <div class="admin-section">
                 <h3>📊 İstatistikler</h3>
                 <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px;">
@@ -1109,7 +1093,6 @@
                 </div>
             </div>
 
-            <!-- Export -->
             <div class="admin-section">
                 <h3>📦 Dışa / İçe Aktar</h3>
                 <div class="btn-group">
@@ -1152,8 +1135,16 @@
         </div>
 
         <div class="categories-wrapper">
+            <div class="categories-nav-hint">
+                <span class="hint-key">Tab</span> Kategorilere geç
+                <span class="hint-key">← →</span> Kategori değiştir
+                <span class="hint-key">Enter</span> Seç
+            </div>
             <div class="categories" id="categories"></div>
         </div>
+
+        <!-- Focus Mode Indicator -->
+        <div id="focusModeIndicator">📂 Kategori Modu — Tab ile geri dön</div>
 
         <div class="channel-list-wrapper">
             <div class="channel-count" id="channelCount">0 kanal</div>
@@ -1171,9 +1162,10 @@
                 <div class="welcome-title">TiViM Player</div>
                 <div class="welcome-subtitle">Bir kanal seçerek izlemeye başlayın</div>
                 <div class="welcome-keys">
-                    <div class="key-hint"><span class="key-badge">← →</span> Kanal Listesi</div>
+                    <div class="key-hint"><span class="key-badge">← →</span> Kanal Listesi Aç/Kapa</div>
                     <div class="key-hint"><span class="key-badge">↑ ↓</span> Kanal Değiştir</div>
                     <div class="key-hint"><span class="key-badge">Enter</span> Kanal Seç</div>
+                    <div class="key-hint"><span class="key-badge">Tab</span> Kategori Modu</div>
                     <div class="key-hint"><span class="key-badge">0-9</span> Kanal No</div>
                     <div class="key-hint"><span class="key-badge">M</span> Sessiz</div>
                     <div class="key-hint"><span class="key-badge">F</span> Tam Ekran</div>
@@ -1226,6 +1218,7 @@ const DEFAULT_PASSWORD = 'admin123';
 let channels = [];
 let filteredChannels = [];
 let categories = [];
+let allCategoryNames = []; // ['all', ...category names]
 let currentCategory = 'all';
 let currentChannelIndex = -1;
 let focusedChannelIndex = 0;
@@ -1240,6 +1233,10 @@ let numberTimeout = null;
 let customChannels = [];
 let adminPassword = '';
 let m3uUrl = '';
+
+// Sidebar focus mode: 'channels' or 'categories'
+let sidebarFocusMode = 'channels';
+let focusedCategoryIndex = 0;
 
 // ==================== INIT ====================
 document.addEventListener('DOMContentLoaded', async () => {
@@ -1269,31 +1266,19 @@ function saveSettings() {
 // ==================== M3U PARSER ====================
 async function loadM3U(url) {
     try {
-        // Use a CORS proxy for GitHub raw files
         let fetchUrl = url;
         const response = await fetch(fetchUrl);
         if (!response.ok) throw new Error('Fetch failed');
         const text = await response.text();
         channels = parseM3U(text);
-
-        // Add custom channels
-        customChannels.forEach(ch => {
-            channels.push(ch);
-        });
-
-        // Number channels
-        channels.forEach((ch, i) => {
-            ch.index = i;
-            ch.number = i + 1;
-        });
-
+        customChannels.forEach(ch => channels.push(ch));
+        channels.forEach((ch, i) => { ch.index = i; ch.number = i + 1; });
         extractCategories();
         filterChannels();
         updateStats();
         showToast('✅', `${channels.length} kanal yüklendi`);
     } catch (err) {
         console.error('M3U yükleme hatası:', err);
-        // Try with cors proxy
         try {
             const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
             const response = await fetch(proxyUrl);
@@ -1311,7 +1296,7 @@ async function loadM3U(url) {
             channels.forEach((ch, i) => { ch.index = i; ch.number = i + 1; });
             extractCategories();
             filterChannels();
-            showToast('❌', 'M3U yüklenemedi. Sadece manuel kanallar gösteriliyor.');
+            showToast('❌', 'M3U yüklenemedi');
         }
     }
 }
@@ -1326,8 +1311,6 @@ function parseM3U(text) {
 
         if (line.startsWith('#EXTINF:')) {
             currentChannel = {};
-
-            // Parse tvg-name
             const nameMatch = line.match(/tvg-name="([^"]*)"/);
             const logoMatch = line.match(/tvg-logo="([^"]*)"/);
             const groupMatch = line.match(/group-title="([^"]*)"/);
@@ -1359,6 +1342,7 @@ function extractCategories() {
         if (ch.group) catSet.add(ch.group);
     });
     categories = Array.from(catSet).sort((a, b) => a.localeCompare(b, 'tr'));
+    allCategoryNames = ['all', ...categories];
     renderCategories();
 }
 
@@ -1367,22 +1351,38 @@ function renderCategories() {
     const container = document.getElementById('categories');
     const allCount = channels.length;
 
-    let html = `<button class="cat-btn ${currentCategory === 'all' ? 'active' : ''}" onclick="selectCategory('all')">
+    // Find current focused category index in allCategoryNames
+    const isCatMode = sidebarFocusMode === 'categories';
+
+    let html = `<button class="cat-btn ${currentCategory === 'all' ? 'active' : ''} ${isCatMode && focusedCategoryIndex === 0 ? 'cat-focused' : ''}" 
+                        onclick="selectCategory('all')" data-cat-idx="0">
         Tümü <span class="cat-count">${allCount}</span>
     </button>`;
 
-    categories.forEach(cat => {
+    categories.forEach((cat, i) => {
         const count = channels.filter(ch => ch.group === cat).length;
-        html += `<button class="cat-btn ${currentCategory === cat ? 'active' : ''}" onclick="selectCategory('${cat.replace(/'/g, "\\'")}')">
+        const catIdx = i + 1;
+        html += `<button class="cat-btn ${currentCategory === cat ? 'active' : ''} ${isCatMode && focusedCategoryIndex === catIdx ? 'cat-focused' : ''}" 
+                        onclick="selectCategory('${cat.replace(/'/g, "\\'")}')" data-cat-idx="${catIdx}">
             ${cat} <span class="cat-count">${count}</span>
         </button>`;
     });
 
     container.innerHTML = html;
+
+    // Scroll focused category into view
+    if (isCatMode) {
+        const focusedBtn = container.querySelector('.cat-focused');
+        if (focusedBtn) {
+            focusedBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+    }
 }
 
 function selectCategory(cat) {
     currentCategory = cat;
+    focusedCategoryIndex = allCategoryNames.indexOf(cat);
+    if (focusedCategoryIndex === -1) focusedCategoryIndex = 0;
     renderCategories();
     filterChannels();
     focusedChannelIndex = 0;
@@ -1412,10 +1412,12 @@ function renderChannelList() {
         return;
     }
 
+    const isChanMode = sidebarFocusMode === 'channels';
+
     let html = '';
     filteredChannels.forEach((ch, i) => {
         const isActive = currentChannelIndex === ch.index;
-        const isFocused = focusedChannelIndex === i && sidebarVisible;
+        const isFocused = focusedChannelIndex === i && sidebarVisible && isChanMode;
         const logoContent = ch.logo
             ? `<img src="${ch.logo}" alt="" onerror="this.parentElement.innerHTML='📺'">`
             : '📺';
@@ -1434,7 +1436,7 @@ function renderChannelList() {
     container.innerHTML = html;
 }
 
-// ==================== PLAYER ====================
+// ==================== PLAYER (OPTIMIZED HLS) ====================
 function playChannel(filteredIndex) {
     const channel = filteredChannels[filteredIndex];
     if (!channel) return;
@@ -1451,6 +1453,10 @@ function playChannel(filteredIndex) {
         hlsInstance = null;
     }
 
+    // Reset video
+    video.removeAttribute('src');
+    video.load();
+
     document.getElementById('welcomeScreen').style.display = 'none';
     document.getElementById('bufferingSpinner').style.display = 'block';
 
@@ -1459,33 +1465,127 @@ function playChannel(filteredIndex) {
 
     if (isHLS && Hls.isSupported()) {
         hlsInstance = new Hls({
+            // === BUFFER OPTIMIZATION - Takılma Giderme ===
+            maxBufferLength: 60,               // Max buffer 60 saniye
+            maxMaxBufferLength: 120,            // Mutlak max 120 saniye
+            maxBufferSize: 60 * 1000 * 1000,    // 60MB buffer
+            maxBufferHole: 0.5,                 // 0.5s buffer hole tolerance
+            highBufferWatchdogPeriod: 2,        // Buffer watchdog
+            nudgeOffset: 0.1,                   // Nudge offset
+            nudgeMaxRetry: 5,                   // Nudge retry
+            
+            // === LOADING OPTIMIZATION ===
+            manifestLoadingTimeOut: 15000,
+            manifestLoadingMaxRetry: 4,
+            manifestLoadingRetryDelay: 1000,
+            levelLoadingTimeOut: 15000,
+            levelLoadingMaxRetry: 4,
+            levelLoadingRetryDelay: 1000,
+            fragLoadingTimeOut: 25000,
+            fragLoadingMaxRetry: 6,
+            fragLoadingRetryDelay: 1000,
+            
+            // === LATENCY & PERFORMANCE ===
             enableWorker: true,
-            lowLatencyMode: true,
-            maxBufferLength: 30,
-            maxMaxBufferLength: 60,
+            lowLatencyMode: false,              // Kapalı = daha stabil
             startFragPrefetch: true,
+            testBandwidth: true,
+            progressive: true,
+            
+            // === ABR (Adaptive Bitrate) ===
+            abrEwmaDefaultEstimate: 500000,     // Başlangıç bant genişliği tahmini
+            abrEwmaFastLive: 3.0,
+            abrEwmaSlowLive: 9.0,
+            abrEwmaFastVoD: 3.0,
+            abrEwmaSlowVoD: 9.0,
+            abrBandWidthFactor: 0.95,
+            abrBandWidthUpFactor: 0.7,
+            
+            // === STALL RECOVERY ===
+            startPosition: -1,
+            liveSyncDurationCount: 3,
+            liveMaxLatencyDurationCount: 10,
+            liveDurationInfinity: true,
+            
+            // === BACK BUFFER ===
+            backBufferLength: 30,               // 30 saniye geri buffer tut
+            
+            // === ERROR RECOVERY ===
+            fragLoadPolicy: {
+                default: {
+                    maxTimeToFirstByteMs: 10000,
+                    maxLoadTimeMs: 120000,
+                    timeoutRetry: {
+                        maxNumRetry: 4,
+                        retryDelayMs: 1000,
+                        maxRetryDelayMs: 8000,
+                    },
+                    errorRetry: {
+                        maxNumRetry: 6,
+                        retryDelayMs: 1000,
+                        maxRetryDelayMs: 8000,
+                    },
+                },
+            },
         });
 
         hlsInstance.loadSource(url);
         hlsInstance.attachMedia(video);
 
-        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+        hlsInstance.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+            console.log(`Manifest yüklendi: ${data.levels.length} kalite seviyesi`);
             video.play().catch(e => console.log('Autoplay blocked:', e));
         });
 
+        // Buffer durumunu izle
+        hlsInstance.on(Hls.Events.FRAG_BUFFERED, (event, data) => {
+            // Fragment buffer edildi - spinner'ı kapat
+            document.getElementById('bufferingSpinner').style.display = 'none';
+        });
+
         hlsInstance.on(Hls.Events.ERROR, (e, data) => {
+            console.warn('HLS Error:', data.type, data.details);
+            
             if (data.fatal) {
                 console.error('HLS Fatal Error:', data);
-                if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-                    hlsInstance.startLoad();
-                } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-                    hlsInstance.recoverMediaError();
-                } else {
-                    showToast('❌', 'Kanal yüklenemedi');
-                    document.getElementById('bufferingSpinner').style.display = 'none';
+                switch (data.type) {
+                    case Hls.ErrorTypes.NETWORK_ERROR:
+                        console.log('Ağ hatası, tekrar deneniyor...');
+                        showToast('🔄', 'Bağlantı koptu, tekrar deneniyor...');
+                        setTimeout(() => {
+                            hlsInstance.startLoad();
+                        }, 1000);
+                        break;
+                    case Hls.ErrorTypes.MEDIA_ERROR:
+                        console.log('Medya hatası, kurtarılıyor...');
+                        hlsInstance.recoverMediaError();
+                        break;
+                    default:
+                        console.error('Kurtarılamaz hata');
+                        showToast('❌', 'Kanal yüklenemedi');
+                        document.getElementById('bufferingSpinner').style.display = 'none';
+                        break;
+                }
+            } else {
+                // Fatal olmayan hatalar - buffer stall recovery
+                if (data.details === 'bufferStalledError') {
+                    console.log('Buffer stall tespit edildi, kurtarılıyor...');
+                    // Video zamanını hafifçe ileri al
+                    if (video.currentTime > 0) {
+                        video.currentTime += 0.1;
+                    }
                 }
             }
         });
+
+        // Kalite otomatik ayarlama log
+        hlsInstance.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
+            const level = hlsInstance.levels[data.level];
+            if (level) {
+                console.log(`Kalite değişti: ${level.width}x${level.height} @ ${Math.round(level.bitrate/1000)}kbps`);
+            }
+        });
+
     } else if (video.canPlayType('application/vnd.apple.mpegurl') && isHLS) {
         // Native HLS (Safari)
         video.src = url;
@@ -1507,8 +1607,43 @@ function playChannel(filteredIndex) {
         document.getElementById('bufferingSpinner').style.display = 'block';
     };
 
+    video.oncanplaythrough = () => {
+        document.getElementById('bufferingSpinner').style.display = 'none';
+    };
+
+    // Stall detection & recovery
+    let lastTime = 0;
+    let stallCheckInterval = null;
+    
+    if (stallCheckInterval) clearInterval(stallCheckInterval);
+    
+    stallCheckInterval = setInterval(() => {
+        if (video.paused || video.ended) return;
+        
+        if (video.currentTime === lastTime && video.readyState < 4) {
+            // Video takıldı
+            console.log('Stall tespit edildi, currentTime:', video.currentTime);
+            
+            if (hlsInstance) {
+                // HLS recovery
+                const buffered = video.buffered;
+                if (buffered.length > 0) {
+                    const end = buffered.end(buffered.length - 1);
+                    if (end > video.currentTime + 0.5) {
+                        video.currentTime = video.currentTime + 0.2;
+                    }
+                }
+            }
+        }
+        lastTime = video.currentTime;
+    }, 3000);
+
+    // Cleanup stall checker when switching
+    video._stallChecker = stallCheckInterval;
+
     video.onerror = () => {
         document.getElementById('bufferingSpinner').style.display = 'none';
+        if (stallCheckInterval) clearInterval(stallCheckInterval);
         showToast('❌', 'Bu kanal oynatılamıyor');
     };
 
@@ -1597,13 +1732,42 @@ function showSidebar() {
         sidebar.classList.add('overlay-mode');
     }
     sidebarVisible = true;
+    sidebarFocusMode = 'channels';
+    updateFocusModeIndicator();
     renderChannelList();
+    renderCategories();
 }
 
 function hideSidebar() {
     const sidebar = document.getElementById('sidebar');
     sidebar.classList.add('hidden');
     sidebarVisible = false;
+    sidebarFocusMode = 'channels';
+    updateFocusModeIndicator();
+}
+
+// ==================== FOCUS MODE ====================
+function toggleFocusMode() {
+    if (sidebarFocusMode === 'channels') {
+        sidebarFocusMode = 'categories';
+        // Set focused category to current active one
+        focusedCategoryIndex = allCategoryNames.indexOf(currentCategory);
+        if (focusedCategoryIndex === -1) focusedCategoryIndex = 0;
+    } else {
+        sidebarFocusMode = 'channels';
+    }
+    updateFocusModeIndicator();
+    renderCategories();
+    renderChannelList();
+}
+
+function updateFocusModeIndicator() {
+    const indicator = document.getElementById('focusModeIndicator');
+    if (sidebarVisible && sidebarFocusMode === 'categories') {
+        indicator.classList.add('show');
+    } else {
+        indicator.classList.remove('show');
+    }
 }
 
 // ==================== CHANNEL OVERLAY ====================
@@ -1665,9 +1829,22 @@ function handleKeydown(e) {
     }
 
     switch (e.key) {
+        case 'Tab':
+            e.preventDefault();
+            if (sidebarVisible) {
+                toggleFocusMode();
+            }
+            break;
+
         case 'ArrowLeft':
             e.preventDefault();
-            if (!sidebarVisible) {
+            if (sidebarVisible && sidebarFocusMode === 'categories') {
+                // Kategorilerde sola git
+                if (focusedCategoryIndex > 0) {
+                    focusedCategoryIndex--;
+                    renderCategories();
+                }
+            } else if (!sidebarVisible) {
                 sidebarOverlayMode = true;
                 showSidebar();
             }
@@ -1675,43 +1852,61 @@ function handleKeydown(e) {
 
         case 'ArrowRight':
             e.preventDefault();
-            if (sidebarVisible) {
+            if (sidebarVisible && sidebarFocusMode === 'categories') {
+                // Kategorilerde sağa git
+                if (focusedCategoryIndex < allCategoryNames.length - 1) {
+                    focusedCategoryIndex++;
+                    renderCategories();
+                }
+            } else if (sidebarVisible && sidebarFocusMode === 'channels') {
                 hideSidebar();
             }
             break;
 
         case 'ArrowUp':
             e.preventDefault();
-            if (sidebarVisible) {
+            if (sidebarVisible && sidebarFocusMode === 'channels') {
                 if (focusedChannelIndex > 0) {
                     focusedChannelIndex--;
                     renderChannelList();
                     scrollToFocused();
                 }
-            } else {
-                // Channel up
+            } else if (!sidebarVisible) {
                 playPrevChannel();
             }
             break;
 
         case 'ArrowDown':
             e.preventDefault();
-            if (sidebarVisible) {
+            if (sidebarVisible && sidebarFocusMode === 'channels') {
                 if (focusedChannelIndex < filteredChannels.length - 1) {
                     focusedChannelIndex++;
                     renderChannelList();
                     scrollToFocused();
                 }
-            } else {
-                // Channel down
+            } else if (!sidebarVisible) {
                 playNextChannel();
             }
             break;
 
         case 'Enter':
             e.preventDefault();
-            if (sidebarVisible && filteredChannels.length > 0) {
-                playChannel(focusedChannelIndex);
+            if (sidebarVisible) {
+                if (sidebarFocusMode === 'categories') {
+                    // Kategori seç
+                    const catName = allCategoryNames[focusedCategoryIndex];
+                    selectCategory(catName);
+                    // Kategori seçtikten sonra kanal moduna geç
+                    sidebarFocusMode = 'channels';
+                    focusedChannelIndex = 0;
+                    updateFocusModeIndicator();
+                    renderChannelList();
+                    renderCategories();
+                    scrollToFocused();
+                    showToast('📂', `Kategori: ${catName === 'all' ? 'Tümü' : catName}`);
+                } else if (filteredChannels.length > 0) {
+                    playChannel(focusedChannelIndex);
+                }
             }
             break;
 
@@ -1722,7 +1917,14 @@ function handleKeydown(e) {
             } else if (document.getElementById('loginModal').classList.contains('show')) {
                 closeLogin();
             } else if (sidebarVisible) {
-                hideSidebar();
+                if (sidebarFocusMode === 'categories') {
+                    sidebarFocusMode = 'channels';
+                    updateFocusModeIndicator();
+                    renderCategories();
+                    renderChannelList();
+                } else {
+                    hideSidebar();
+                }
             }
             break;
 
@@ -1802,7 +2004,6 @@ function handleNumberInput(digit) {
         numberBuffer = '';
         document.getElementById('numberOverlay').style.display = 'none';
 
-        // Find channel by number
         const channelIdx = filteredChannels.findIndex(ch => ch.number === num);
         if (channelIdx !== -1) {
             focusedChannelIndex = channelIdx;
@@ -1895,7 +2096,6 @@ function addChannel() {
     customChannels.push(newCh);
     channels.push(newCh);
 
-    // Renumber
     channels.forEach((ch, i) => { ch.index = i; ch.number = i + 1; });
 
     saveSettings();
@@ -1904,7 +2104,6 @@ function addChannel() {
     populateEditSelect();
     updateStats();
 
-    // Clear form
     document.getElementById('addChName').value = '';
     document.getElementById('addChUrl').value = '';
     document.getElementById('addChGroup').value = '';
@@ -1924,7 +2123,6 @@ function updateChannel() {
     ch.group = document.getElementById('editChGroup').value.trim();
     ch.logo = document.getElementById('editChLogo').value.trim();
 
-    // Update custom channels if applicable
     if (ch.isCustom) {
         const custIdx = customChannels.findIndex(c => c.name === oldName);
         if (custIdx !== -1) {
@@ -1946,7 +2144,6 @@ function deleteChannel() {
     const ch = channels[idx];
     if (!confirm(`"${ch.name}" kanalını silmek istediğinizden emin misiniz?`)) return;
 
-    // Remove from custom channels
     if (ch.isCustom) {
         customChannels = customChannels.filter(c => c.name !== ch.name || c.url !== ch.url);
     }
