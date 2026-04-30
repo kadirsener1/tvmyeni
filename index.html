@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Kategorili Video Oynatıcı</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    @media (min-width: 768px) {
+      .container {
+        flex-direction: row;
+      }
+    }
+
+    .sidebar {
+      width: 100%;
+      max-width: 300px;
+      background: #fff;
+      padding: 10px;
+      border-radius: 10px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+
+    .player {
+      flex: 1;
+      background: #fff;
+      padding: 10px;
+      border-radius: 10px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+
+    .channel {
+      cursor: pointer;
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .channel:hover {
+      background-color: #f0f0f0;
+    }
+
+    iframe, video {
+      width: 100%;
+      height: auto;
+      max-width: 100%;
+      aspect-ratio: 16 / 9;
+      border-radius: 12px;
+      border: none;
+      display: block;
+      min-height: 200px;
+    }
+
+    select {
+      width: 100%;
+      padding: 8px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+
+    .fullscreen-btn {
+      align-self: flex-end;
+      padding: 6px 12px;
+      font-size: 14px;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="player" id="playerContainer">
+      <button id="fullscreenToggle" class="fullscreen-btn" style="display: none;">Tam Ekran</button>
+      <p>Bir kanal seçin...</p>
+    </div>
+    <div class="sidebar">
+      <div class="filters">
+        <select id="categoryFilter"></select>
+      </div>
+      <div class="list" id="channelList"></div>
+    </div>
+  </div>
+
+  <script>
+    let allChannels = [];
+    let currentMediaElement = null;
+
+    async function loadChannels() {
+      const response = await fetch("channels.json");
+      const data = await response.json();
+      allChannels = data;
+      populateCategoryFilter();
+      displayChannels("Tümü");
+    }
+
+    function populateCategoryFilter() {
+      const categories = ["Tümü", ...new Set(allChannels.map(c => c.category))];
+      const select = document.getElementById("categoryFilter");
+      categories.forEach(cat => {
+        const option = document.createElement("option");
+        option.value = cat;
+        option.textContent = cat;
+        select.appendChild(option);
+      });
+      select.addEventListener("change", () => displayChannels(select.value));
+    }
+
+    function displayChannels(category) {
+      const list = document.getElementById("channelList");
+      list.innerHTML = "";
+      const filtered = category === "Tümü" ? allChannels : allChannels.filter(c => c.category === category);
+      filtered.forEach(channel => {
+        const div = document.createElement("div");
+        div.className = "channel";
+        div.textContent = channel.title;
+        div.onclick = () => {
+          loadPlayer(channel);
+          document.getElementById("playerContainer").scrollIntoView({ behavior: "smooth" });
+        };
+        list.appendChild(div);
+      });
+    }
+
+    function launchFullscreen(element) {
+      if (element.requestFullscreen) element.requestFullscreen();
+      else if (element.webkitRequestFullscreen) element.webkitRequestFullscreen();
+      else if (element.msRequestFullscreen) element.msRequestFullscreen();
+    }
+
+    function loadPlayer(channel) {
+      const { type, url } = channel;
+      const container = document.getElementById("playerContainer");
+      const fullscreenBtn = document.getElementById("fullscreenToggle");
+      container.innerHTML = "";
+      fullscreenBtn.style.display = "none";
+
+      let mediaElement = null;
+
+      if (type === "hls") {
+        const video = document.createElement("video");
+        video.controls = true;
+        video.autoplay = true;
+        container.appendChild(video);
+
+        if (Hls.isSupported()) {
+          const hls = new Hls();
+          hls.loadSource(url);
+          hls.attachMedia(video);
+          hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+        } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+          video.src = url;
+          video.play();
+        }
+        mediaElement = video;
+
+      } else if (type === "mp4") {
+        const video = document.createElement("video");
+        video.src = url;
+        video.controls = true;
+        video.autoplay = true;
+        container.appendChild(video);
+        mediaElement = video;
+
+      } else if (type === "youtube") {
+        const videoId = new URL(url).searchParams.get("v");
+        const iframe = document.createElement("iframe");
+        iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+        iframe.allow = "autoplay; fullscreen";
+        iframe.setAttribute("allowfullscreen", "");
+        iframe.frameBorder = "0";
+        iframe.style.width = "100%";
+        iframe.style.aspectRatio = "16 / 9";
+        iframe.style.borderRadius = "12px";
+        iframe.style.border = "none";
+        iframe.style.display = "block";
+        iframe.style.minHeight = "200px";
+        container.appendChild(iframe);
+        mediaElement = iframe;
+
+      } else if (type === "vimeo") {
+        const vimeoId = url.split("/").pop();
+        const iframe = document.createElement("iframe");
+        iframe.src = `https://player.vimeo.com/video/${vimeoId}?autoplay=1`;
+        iframe.allow = "autoplay; fullscreen";
+        iframe.setAttribute("allowfullscreen", "");
+        iframe.frameBorder = "0";
+        iframe.style.width = "100%";
+        iframe.style.aspectRatio = "16 / 9";
+        iframe.style.borderRadius = "12px";
+        iframe.style.border = "none";
+        iframe.style.display = "block";
+        iframe.style.minHeight = "200px";
+        container.appendChild(iframe);
+        mediaElement = iframe;
+
+      } else if (type === "iframe") {
+        const iframe = document.createElement("iframe");
+        iframe.src = url;
+        iframe.allow = "fullscreen";
+        iframe.setAttribute("allowfullscreen", "");
+        iframe.frameBorder = "0";
+        iframe.style.width = "100%";
+        iframe.style.aspectRatio = "16 / 9";
+        iframe.style.borderRadius = "12px";
+        iframe.style.border = "none";
+        iframe.style.display = "block";
+        iframe.style.minHeight = "200px";
+        container.appendChild(iframe);
+        mediaElement = iframe;
+      }
+
+      if (mediaElement) {
+        currentMediaElement = mediaElement;
+        fullscreenBtn.style.display = "inline-block";
+        fullscreenBtn.onclick = () => launchFullscreen(currentMediaElement);
+        container.prepend(fullscreenBtn);
+      }
+    }
+
+    loadChannels();
+  </script>
+</body>
+</html>

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Kategorili Video Oynatıcı</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    body { font-family: sans-serif; background: #f5f5f5; margin: 0; padding: 20px; }
+    .container { display: flex; flex-direction: column; gap: 20px; }
+    @media (min-width: 768px) {
+      .container { flex-direction: row; }
+    }
+    .list, .filters { width: 100%; max-width: 300px; background: #fff; padding: 10px; border-radius: 10px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
+    .player { flex: 1; background: #fff; padding: 10px; border-radius: 10px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
+    .channel { cursor: pointer; padding: 10px; border-bottom: 1px solid #eee; }
+    .channel:hover { background-color: #f0f0f0; }
+    iframe, video { width: 100%; max-width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; }
+    select { width: 100%; padding: 8px; border-radius: 8px; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div>
+      <div class="filters">
+        <select id="categoryFilter">
+        </select>
+      </div>
+      <div class="list" id="channelList"></div>
+    </div>
+    <div class="player" id="playerContainer">
+      <p>Bir kanal seçin...</p>
+    </div>
+  </div>
+
+  <script>
+    let allChannels = [];
+
+    async function loadChannels() {
+      const response = await fetch("channels.json");
+      const data = await response.json();
+      allChannels = data;
+      populateCategoryFilter();
+      displayChannels("beinsport1");
+    }
+
+    function populateCategoryFilter() {
+      const categories = ["Tümü", ...new Set(allChannels.map(c => c.category))];
+      const select = document.getElementById("categoryFilter");
+      categories.forEach(cat => {
+        const option = document.createElement("option");
+        option.value = cat;
+        option.textContent = cat;
+        select.appendChild(option);
+      });
+      select.addEventListener("change", () => displayChannels(select.value));
+    }
+
+    function displayChannels(category) {
+      const list = document.getElementById("channelList");
+      list.innerHTML = "";
+      const filtered = category === "Tümü" ? allChannels : allChannels.filter(c => c.category === category);
+      filtered.forEach(channel => {
+        const div = document.createElement("div");
+        div.className = "channel";
+        div.textContent = channel.title;
+        div.onclick = () => loadPlayer(channel);
+        list.appendChild(div);
+      });
+    }
+
+    function launchFullscreen(element) {
+      if (element.requestFullscreen) element.requestFullscreen();
+      else if (element.webkitRequestFullscreen) element.webkitRequestFullscreen();
+      else if (element.msRequestFullscreen) element.msRequestFullscreen();
+    }
+
+    function loadPlayer(channel) {
+      const { type, url } = channel;
+      const container = document.getElementById("playerContainer");
+      container.innerHTML = "";
+
+      if (type === "hls") {
+        const video = document.createElement("video");
+        video.controls = true;
+        video.autoplay = true;
+        container.appendChild(video);
+
+        if (Hls.isSupported()) {
+          const hls = new Hls();
+          hls.loadSource(url);
+          hls.attachMedia(video);
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            video.play();
+            launchFullscreen(video);
+          });
+        } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+          video.src = url;
+          video.play();
+          launchFullscreen(video);
+        }
+      } else if (type === "mp4") {
+        const video = document.createElement("video");
+        video.src = url;
+        video.controls = true;
+        video.autoplay = true;
+        container.appendChild(video);
+        video.play();
+        launchFullscreen(video);
+      } else if (type === "youtube") {
+        const videoId = new URL(url).searchParams.get("v");
+        const iframe = document.createElement("iframe");
+        iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+        iframe.allow = "autoplay; fullscreen";
+        iframe.frameBorder = "0";
+        container.appendChild(iframe);
+        launchFullscreen(iframe);
+      } else if (type === "vimeo") {
+        const vimeoId = url.split("/").pop();
+        const iframe = document.createElement("iframe");
+        iframe.src = `https://player.vimeo.com/video/${vimeoId}?autoplay=1`;
+        iframe.allow = "autoplay; fullscreen";
+        iframe.frameBorder = "0";
+        container.appendChild(iframe);
+        launchFullscreen(iframe);
+      } else if (type === "iframe") {
+        const iframe = document.createElement("iframe");
+        iframe.src = url;
+        iframe.allowFullscreen = true;
+        iframe.frameBorder = "0";
+        container.appendChild(iframe);
+        launchFullscreen(iframe);
+      }
+    }
+
+    loadChannels();
+  </script>
+
+</body>
+</html>
