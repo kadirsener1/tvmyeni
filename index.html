@@ -288,7 +288,6 @@
         }
         #focusModeIndicator.show { display: block; }
 
-        /* Mobile Menu Button */
         #mobileMenuBtn {
             display: none; position: fixed; top: 15px; left: 15px; z-index: 900;
             width: 44px; height: 44px; border-radius: 12px;
@@ -297,26 +296,15 @@
             align-items: center; justify-content: center; backdrop-filter: blur(10px);
         }
 
-        /* ==================== MOBİL UYUM ==================== */
         @media (max-width: 768px) {
-            #sidebar {
-                width: 100%;
-                border-right: none;
-            }
-
+            #sidebar { width: 100%; border-right: none; }
             #mobileMenuBtn { display: flex; }
-
-            .sidebar-header {
-                padding: 12px 16px;
-                min-height: 56px;
-            }
+            .sidebar-header { padding: 12px 16px; min-height: 56px; }
             .sidebar-header .logo { font-size: 18px; }
             .sidebar-header .logo span { font-size: 24px; }
-
             .categories-wrapper { padding: 8px 12px; }
             .categories-nav-hint { display: none; }
             .cat-btn { padding: 5px 10px; font-size: 11px; }
-
             .channel-list { padding: 4px 6px; }
             .channel-item { padding: 8px 10px; gap: 10px; }
             .channel-logo { width: 36px; height: 36px; font-size: 16px; }
@@ -324,64 +312,44 @@
             .channel-group { font-size: 10px; }
             .channel-num { font-size: 10px; padding: 2px 6px; }
             .channel-count { padding: 6px 12px; font-size: 11px; }
-
-            #channelOverlay {
-                left: 10px; right: 10px; bottom: 70px;
-                max-width: none; padding: 12px 16px;
-                border-radius: 12px;
-            }
+            #channelOverlay { left: 10px; right: 10px; bottom: 70px; max-width: none; padding: 12px 16px; border-radius: 12px; }
             .overlay-channel-name { font-size: 16px; }
             .overlay-channel-group { font-size: 12px; }
-
-            #playerControls {
-                padding: 12px 16px;
-                flex-wrap: wrap;
-                gap: 8px;
-            }
+            #playerControls { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
             .controls-left { gap: 8px; }
             .controls-right { gap: 8px; }
             .ctrl-btn { width: 36px; height: 36px; font-size: 15px; }
             .volume-slider { width: 60px; }
             .now-playing-text { font-size: 12px; }
             .now-playing-res { font-size: 10px; }
-
             .welcome-icon { font-size: 50px; margin-bottom: 14px; }
             .welcome-title { font-size: 20px; }
             .welcome-subtitle { font-size: 13px; padding: 0 20px; text-align: center; }
             .welcome-keys { gap: 10px; margin-top: 20px; }
             .key-hint { font-size: 11px; }
             .key-badge { padding: 3px 8px; font-size: 10px; }
-
             #numberOverlay { top: 15px; right: 15px; padding: 12px 18px; }
             .number-display { font-size: 36px; }
-
             #toast { bottom: 15px; right: 15px; left: 15px; max-width: none; padding: 10px 16px; }
             .toast-content { font-size: 13px; }
         }
 
         @media (max-width: 480px) {
-            #sidebar { width: 100%; }
-
             .sidebar-header { padding: 10px 12px; min-height: 50px; }
             .sidebar-header .logo { font-size: 16px; }
             .sidebar-header .logo span { font-size: 20px; }
-
             .channel-logo { width: 32px; height: 32px; font-size: 14px; border-radius: 8px; }
             .channel-item { padding: 7px 8px; gap: 8px; border-radius: 10px; }
             .channel-name { font-size: 12px; }
             .channel-num { font-size: 9px; padding: 1px 5px; }
-
             .cat-btn { padding: 4px 8px; font-size: 10px; }
             .cat-count { font-size: 9px; padding: 1px 4px; }
-
             .ctrl-btn { width: 32px; height: 32px; font-size: 13px; }
             .volume-slider { width: 50px; }
-
             #channelOverlay { padding: 10px 14px; border-radius: 10px; }
             .overlay-channel-name { font-size: 14px; }
         }
 
-        /* Landscape mobile */
         @media (max-height: 500px) and (orientation: landscape) {
             #sidebar { width: 300px; }
             .sidebar-header { min-height: 44px; padding: 8px 12px; }
@@ -392,7 +360,6 @@
             .channel-count { padding: 4px 12px; font-size: 10px; }
         }
 
-        /* Touch-friendly tap areas */
         @media (pointer: coarse) {
             .channel-item { min-height: 54px; }
             .cat-btn { min-height: 32px; }
@@ -491,6 +458,7 @@
 
 <script>
 const M3U_URL = 'https://raw.githubusercontent.com/kadirsener1/tivim/refs/heads/main/merged.m3u';
+const AUTO_REFRESH_INTERVAL = 30 * 60 * 1000; // 30 dakikada bir otomatik güncelle
 
 let channels = [];
 let filteredChannels = [];
@@ -499,7 +467,7 @@ let allCategoryNames = [];
 let currentCategory = 'all';
 let currentChannelIndex = -1;
 let focusedChannelIndex = 0;
-let sidebarVisible = true;
+let sidebarVisible = true;  // Başlangıçta AÇIK
 let sidebarOverlayMode = false;
 let isPlaying = false;
 let hlsInstance = null;
@@ -512,15 +480,40 @@ let focusedCategoryIndex = 0;
 let currentResolution = '';
 let stallChecker = null;
 let resolutionChecker = null;
+let autoRefreshTimer = null;
 
+// ==================== INIT ====================
 document.addEventListener('DOMContentLoaded', async () => {
     await loadM3U(M3U_URL);
+
+    // Sidebar başlangıçta açık kalır
+    sidebarVisible = true;
+    sidebarOverlayMode = false;
+    document.getElementById('sidebar').classList.remove('hidden');
+
     setTimeout(() => document.getElementById('loadingScreen').classList.add('hide'), 2000);
     setupEventListeners();
     setupMouseEvents();
     setupTouchGestures();
+    startAutoRefresh();
 });
 
+// ==================== OTOMATİK GÜNCELLEME ====================
+function startAutoRefresh() {
+    if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+    autoRefreshTimer = setInterval(async () => {
+        console.log('Kanal listesi otomatik güncelleniyor...');
+        const playingIndex = currentChannelIndex;
+        await loadM3U(M3U_URL);
+        // Oynatılan kanal varsa koru
+        if (playingIndex >= 0 && playingIndex < channels.length) {
+            currentChannelIndex = playingIndex;
+        }
+        showToast('🔄', 'Kanal listesi güncellendi');
+    }, AUTO_REFRESH_INTERVAL);
+}
+
+// ==================== M3U ====================
 async function loadM3U(url) {
     try {
         const r = await fetch(url);
@@ -537,7 +530,7 @@ async function loadM3U(url) {
         }
     }
     channels.forEach((ch, i) => { ch.index = i; ch.number = i + 1; });
-    extractCategories(); filterChannels();
+    extractCategories(); filterChannels(); forceRebuildList();
     showToast('✅', `${channels.length} kanal yüklendi`);
 }
 
@@ -697,12 +690,8 @@ function updateResolutionDisplay(resText) {
     currentResolution = resText;
     const resEl = document.getElementById('overlayResolution');
     const resTxt = document.getElementById('overlayResText');
-    if (resText) {
-        resTxt.textContent = resText;
-        resEl.style.display = 'inline-flex';
-    } else {
-        resEl.style.display = 'none';
-    }
+    if (resText) { resTxt.textContent = resText; resEl.style.display = 'inline-flex'; }
+    else { resEl.style.display = 'none'; }
     document.getElementById('nowPlayingRes').textContent = resText ? `• ${resText}` : '';
 }
 
@@ -711,23 +700,14 @@ function startResolutionMonitor() {
     const video = document.getElementById('videoPlayer');
     currentResolution = '';
     updateResolutionDisplay('');
-
     resolutionChecker = setInterval(() => {
         if (video.videoWidth > 0 && video.videoHeight > 0) {
-            const w = video.videoWidth;
-            const h = video.videoHeight;
+            const w = video.videoWidth, h = video.videoHeight;
             const label = getResolutionLabel(w, h);
             const newRes = `${w}×${h} ${label}`;
-            if (newRes !== currentResolution) {
-                updateResolutionDisplay(newRes);
-                // Overlay açıksa güncelle
-                const overlay = document.getElementById('channelOverlay');
-                if (overlay.style.display === 'block') {
-                    // Overlay zaten açıksa resolution güncellenir otomatik
-                }
-            }
+            if (newRes !== currentResolution) updateResolutionDisplay(newRes);
         }
-    }, 1500);
+    }, 2000);
 }
 
 // ==================== PLAYER ====================
@@ -741,6 +721,7 @@ function playChannel(filteredIndex) {
     const video = document.getElementById('videoPlayer');
     const url = channel.url;
 
+    // Cleanup
     if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
     if (stallChecker) { clearInterval(stallChecker); stallChecker = null; }
     if (resolutionChecker) { clearInterval(resolutionChecker); resolutionChecker = null; }
@@ -756,34 +737,65 @@ function playChannel(filteredIndex) {
 
     if (isHLS && Hls.isSupported()) {
         hlsInstance = new Hls({
-            maxBufferLength: 30,
-            maxMaxBufferLength: 60,
-            maxBufferSize: 30 * 1000 * 1000,
-            maxBufferHole: 0.3,
-            manifestLoadingTimeOut: 12000,
-            manifestLoadingMaxRetry: 3,
+            /*
+             * === AKICI YAYIM İÇİN OPTİMİZE EDİLMİŞ AYARLAR ===
+             *
+             * Tivimate benzeri akıcılık hedefleniyor:
+             * - Geniş buffer → ani kesintilere dayanıklı
+             * - Agresif fragment yükleme → bekleme yok
+             * - ABR yumuşak geçiş → kalite zıplaması yok
+             * - Stall recovery otomatik → takılma anında çöz
+             */
+
+            // BUFFER — Geniş tut, kesinti olmasın
+            maxBufferLength: 45,               // 45 saniye ön yükleme
+            maxMaxBufferLength: 90,             // Mutlak max
+            maxBufferSize: 50 * 1000 * 1000,    // 50MB
+            maxBufferHole: 0.5,                 // 0.5s boşluk tolere et
+            backBufferLength: 30,               // 30s geri buffer
+
+            // LOADING — Hızlı retry, uzun timeout
+            manifestLoadingTimeOut: 15000,
+            manifestLoadingMaxRetry: 4,
             manifestLoadingRetryDelay: 500,
-            levelLoadingTimeOut: 12000,
-            levelLoadingMaxRetry: 3,
+            levelLoadingTimeOut: 15000,
+            levelLoadingMaxRetry: 4,
             levelLoadingRetryDelay: 500,
-            fragLoadingTimeOut: 20000,
-            fragLoadingMaxRetry: 4,
+            fragLoadingTimeOut: 25000,
+            fragLoadingMaxRetry: 6,
             fragLoadingRetryDelay: 500,
-            enableWorker: true,
-            lowLatencyMode: false,
-            startFragPrefetch: true,
-            progressive: true,
+
+            // PERFORMANCE
+            enableWorker: true,                 // Ayrı thread'de decode
+            lowLatencyMode: false,              // Akıcılık > düşük gecikme
+            startFragPrefetch: true,            // Fragment önceden yükle
+            progressive: true,                  // Progressive loading
             testBandwidth: true,
-            abrEwmaDefaultEstimate: 1000000,
-            abrBandWidthFactor: 0.9,
-            abrBandWidthUpFactor: 0.7,
-            liveSyncDurationCount: 3,
-            liveMaxLatencyDurationCount: 6,
+
+            // ABR — Yumuşak kalite geçişi
+            abrEwmaDefaultEstimate: 2000000,    // 2Mbps başlangıç tahmini
+            abrBandWidthFactor: 0.8,            // Düşürme daha yumuşak
+            abrBandWidthUpFactor: 0.5,          // Yükseltme daha dikkatli
+            abrMaxWithRealBitrate: true,        // Gerçek bitrate kullan
+
+            // LIVE SYNC
+            liveSyncDurationCount: 4,           // 4 segment geride kal
+            liveMaxLatencyDurationCount: 8,     // Max 8 segment gecikme
             liveDurationInfinity: true,
-            backBufferLength: 20,
+            liveBackBufferLength: 30,
+
+            // STALL RECOVERY
             nudgeOffset: 0.2,
-            nudgeMaxRetry: 5,
+            nudgeMaxRetry: 10,                  // Daha fazla kurtarma denemesi
             startPosition: -1,
+
+            // FRAGMENT PREFETCH — Sonraki segmenti erken yükle
+            maxFragLookUpTolerance: 0.25,
+
+            // EXTRA — Smooth playback
+            stretchShortVideoTrack: true,       // Kısa video track uzat
+            forceKeyFrameOnDiscontinuity: true,  // Keyframe zorla
+            appendErrorMaxRetry: 5,             // Append hatası retry
         });
 
         hlsInstance.loadSource(url);
@@ -797,14 +809,34 @@ function playChannel(filteredIndex) {
             document.getElementById('bufferingSpinner').style.display = 'none';
         });
 
+        // Buffer seviyesi izleme — akıcılık garantisi
+        hlsInstance.on(Hls.Events.BUFFER_APPENDED, () => {
+            const buffered = video.buffered;
+            if (buffered.length > 0) {
+                const bufferEnd = buffered.end(buffered.length - 1);
+                const bufferAhead = bufferEnd - video.currentTime;
+                // 2 saniyeden az buffer kaldıysa spinner göster
+                if (bufferAhead < 2 && !video.paused) {
+                    document.getElementById('bufferingSpinner').style.display = 'block';
+                } else {
+                    document.getElementById('bufferingSpinner').style.display = 'none';
+                }
+            }
+        });
+
         hlsInstance.on(Hls.Events.ERROR, (e, data) => {
             if (data.fatal) {
                 switch (data.type) {
                     case Hls.ErrorTypes.NETWORK_ERROR:
-                        showToast('🔄', 'Bağlantı sorunu, tekrar deneniyor...');
-                        setTimeout(() => hlsInstance && hlsInstance.startLoad(), 2000);
+                        showToast('🔄', 'Bağlantı sorunu, yeniden deneniyor...');
+                        setTimeout(() => {
+                            if (hlsInstance) {
+                                hlsInstance.startLoad();
+                            }
+                        }, 1500);
                         break;
                     case Hls.ErrorTypes.MEDIA_ERROR:
+                        console.log('Media error, recovering...');
                         hlsInstance.recoverMediaError();
                         break;
                     default:
@@ -813,8 +845,18 @@ function playChannel(filteredIndex) {
                         break;
                 }
             }
-            if (data.details === 'bufferStalledError' && video.currentTime > 0) video.currentTime += 0.1;
+            // Non-fatal stall — micro seek
+            if (data.details === 'bufferStalledError' && video.currentTime > 0) {
+                const buffered = video.buffered;
+                if (buffered.length > 0) {
+                    const end = buffered.end(buffered.length - 1);
+                    if (end > video.currentTime + 0.3) {
+                        video.currentTime += 0.15;
+                    }
+                }
+            }
         });
+
     } else if (video.canPlayType('application/vnd.apple.mpegurl') && isHLS) {
         video.src = url;
         video.play().catch(() => {});
@@ -828,46 +870,74 @@ function playChannel(filteredIndex) {
         isPlaying = true;
         document.getElementById('playPauseBtn').textContent = '⏸';
     };
-    video.onwaiting = () => { document.getElementById('bufferingSpinner').style.display = 'block'; };
-    video.oncanplaythrough = () => { document.getElementById('bufferingSpinner').style.display = 'none'; };
+    video.onwaiting = () => {
+        document.getElementById('bufferingSpinner').style.display = 'block';
+    };
+    video.oncanplaythrough = () => {
+        document.getElementById('bufferingSpinner').style.display = 'none';
+    };
     video.onerror = () => {
         document.getElementById('bufferingSpinner').style.display = 'none';
-        if (stallChecker) { clearInterval(stallChecker); stallChecker = null; }
-        if (resolutionChecker) { clearInterval(resolutionChecker); resolutionChecker = null; }
+        cleanup();
         showToast('❌', 'Bu kanal oynatılamıyor');
     };
 
-    // Stall recovery
-    let lastTime = -1, stallCount = 0;
+    // === AKICI STALL RECOVERY ===
+    let lastTime = -1, stallCount = 0, microStallCount = 0;
     stallChecker = setInterval(() => {
         if (video.paused || video.ended || !isPlaying) return;
-        if (video.currentTime === lastTime && video.readyState >= 2) {
-            stallCount++;
-            if (stallCount >= 2) {
-                const buffered = video.buffered;
-                if (buffered.length > 0) {
-                    const end = buffered.end(buffered.length - 1);
-                    if (end > video.currentTime + 0.5) video.currentTime += 0.3;
-                }
-                stallCount = 0;
-            }
-        } else { stallCount = 0; }
-        lastTime = video.currentTime;
-    }, 4000);
 
-    // Gerçek çözünürlük takibi başlat
+        if (video.currentTime === lastTime) {
+            // Video ilerlemedi
+            if (video.readyState >= 3) {
+                // Data var ama oynamıyor → micro seek
+                microStallCount++;
+                if (microStallCount >= 2) {
+                    video.currentTime += 0.05; // Çok küçük atlama
+                    microStallCount = 0;
+                }
+            } else {
+                // Buffer yetersiz
+                stallCount++;
+                if (stallCount >= 3) {
+                    const buffered = video.buffered;
+                    if (buffered.length > 0) {
+                        const end = buffered.end(buffered.length - 1);
+                        if (end > video.currentTime + 1) {
+                            video.currentTime = video.currentTime + 0.3;
+                        } else if (hlsInstance) {
+                            // Buffer çok az, yeniden yükle
+                            hlsInstance.startLoad();
+                        }
+                    }
+                    stallCount = 0;
+                }
+            }
+        } else {
+            stallCount = 0;
+            microStallCount = 0;
+        }
+        lastTime = video.currentTime;
+    }, 2000);
+
     startResolutionMonitor();
 
     document.getElementById('nowPlayingText').textContent = channel.name;
     showChannelOverlay(channel);
     forceRebuildList();
 
+    // Kanal açılınca sidebar gizle
     if (window.innerWidth <= 768 || sidebarOverlayMode) {
         setTimeout(() => hideSidebar(), 600);
     } else {
         setTimeout(() => { sidebarOverlayMode = true; hideSidebar(); }, 800);
     }
     showToast('▶️', channel.name);
+}
+
+function cleanup() {
+    if (stallChecker) { clearInterval(stallChecker); stallChecker = null; }
+    if (resolutionChecker) { clearInterval(resolutionChecker); resolutionChecker = null; }
 }
 
 function playNextChannel() {
@@ -957,12 +1027,9 @@ function showControls() {
     controlsTimeout = setTimeout(() => c.classList.remove('visible'), 4000);
 }
 
-// ==================== TOUCH GESTURES (MOBİL) ====================
+// ==================== TOUCH ====================
 function setupTouchGestures() {
-    let touchStartX = 0;
-    let touchStartY = 0;
-    let touchStartTime = 0;
-
+    let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
     const player = document.getElementById('playerArea');
 
     player.addEventListener('touchstart', (e) => {
@@ -974,38 +1041,20 @@ function setupTouchGestures() {
 
     player.addEventListener('touchend', (e) => {
         if (e.target.closest('#playerControls') || e.target.closest('#channelOverlay')) return;
-        const deltaX = e.changedTouches[0].clientX - touchStartX;
-        const deltaY = e.changedTouches[0].clientY - touchStartY;
-        const deltaTime = Date.now() - touchStartTime;
-
-        // Swipe detection
-        if (deltaTime < 500 && Math.abs(deltaX) > 60 && Math.abs(deltaX) > Math.abs(deltaY)) {
-            if (deltaX > 0) {
-                // Sağa swipe → sidebar aç
-                if (!sidebarVisible) {
-                    sidebarOverlayMode = true;
-                    showSidebar();
-                }
-            } else {
-                // Sola swipe → sidebar kapat
-                if (sidebarVisible) hideSidebar();
-            }
+        const dX = e.changedTouches[0].clientX - touchStartX;
+        const dY = e.changedTouches[0].clientY - touchStartY;
+        const dT = Date.now() - touchStartTime;
+        if (dT < 500 && Math.abs(dX) > 60 && Math.abs(dX) > Math.abs(dY)) {
+            if (dX > 0 && !sidebarVisible) { sidebarOverlayMode = true; showSidebar(); }
+            else if (dX < 0 && sidebarVisible) hideSidebar();
         }
     }, { passive: true });
 
-    // Sidebar'da swipe
     const sidebar = document.getElementById('sidebar');
-    let sbTouchStartX = 0;
-
-    sidebar.addEventListener('touchstart', (e) => {
-        sbTouchStartX = e.touches[0].clientX;
-    }, { passive: true });
-
+    let sbX = 0;
+    sidebar.addEventListener('touchstart', (e) => { sbX = e.touches[0].clientX; }, { passive: true });
     sidebar.addEventListener('touchend', (e) => {
-        const deltaX = e.changedTouches[0].clientX - sbTouchStartX;
-        if (deltaX < -60) {
-            hideSidebar();
-        }
+        if (e.changedTouches[0].clientX - sbX < -60) hideSidebar();
     }, { passive: true });
 }
 
@@ -1032,7 +1081,9 @@ function handleKeydown(e) {
                     if (focusedCategoryIndex > 0) { focusedCategoryIndex--; renderCategories(); }
                 }
             } else {
-                sidebarOverlayMode = true; showSidebar();
+                // Sidebar kapalı → OK tuşuyla aç
+                sidebarOverlayMode = true;
+                showSidebar();
             }
             break;
 
@@ -1051,7 +1102,14 @@ function handleKeydown(e) {
                 if (sidebarFocusMode === 'channels') {
                     if (focusedChannelIndex > 0) { focusedChannelIndex--; updateFocusUI(); }
                 }
-            } else { playPrevChannel(); }
+            } else {
+                // Sidebar kapalı — yukarı ok: önceki kanal VEYA sidebar aç
+                if (currentChannelIndex >= 0) {
+                    playPrevChannel();
+                } else {
+                    sidebarOverlayMode = true; showSidebar();
+                }
+            }
             break;
 
         case 'ArrowDown':
@@ -1066,7 +1124,14 @@ function handleKeydown(e) {
                     focusedChannelIndex = 0;
                     updateFocusModeIndicator(); renderCategories(); forceRebuildList();
                 }
-            } else { playNextChannel(); }
+            } else {
+                // Sidebar kapalı — aşağı ok: sonraki kanal VEYA sidebar aç
+                if (currentChannelIndex >= 0) {
+                    playNextChannel();
+                } else {
+                    sidebarOverlayMode = true; showSidebar();
+                }
+            }
             break;
 
         case 'Enter':
@@ -1082,6 +1147,10 @@ function handleKeydown(e) {
                 } else if (filteredChannels.length > 0) {
                     playChannel(focusedChannelIndex);
                 }
+            } else {
+                // Sidebar kapalıyken Enter → sidebar aç
+                sidebarOverlayMode = true;
+                showSidebar();
             }
             break;
 
