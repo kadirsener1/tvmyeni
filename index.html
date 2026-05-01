@@ -44,7 +44,6 @@
 
         #app { display: flex; height: 100vh; width: 100vw; position: relative; }
 
-        /* SIDEBAR */
         #sidebar {
             position: fixed; left: 0; top: 0; width: 380px; height: 100vh;
             background: var(--bg-sidebar); backdrop-filter: blur(20px);
@@ -133,7 +132,6 @@
         .channel-group { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
         .channel-num { font-size: 11px; color: var(--text-dim); background: rgba(255,255,255,0.05); padding: 2px 8px; border-radius: 6px; font-weight: 600; }
 
-        /* PLAYER */
         #playerArea {
             flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
             background: #000; position: relative; width: 100%; height: 100vh;
@@ -141,10 +139,7 @@
         #videoContainer { width: 100%; height: 100%; position: relative; background: #000; }
         #videoPlayer {
             width: 100%; height: 100%; background: #000; object-fit: contain;
-            /* GPU hızlandırma — akıcılık */
-            transform: translateZ(0);
-            -webkit-transform: translateZ(0);
-            will-change: auto;
+            transform: translateZ(0); -webkit-transform: translateZ(0); will-change: auto;
         }
 
         #welcomeScreen {
@@ -180,83 +175,37 @@
             to { transform: translateY(0); opacity: 1; }
         }
         .info-bar-content {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 20px;
+            display: flex; align-items: center; justify-content: space-between; gap: 20px;
         }
         .info-bar-left {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            flex: 1;
-            min-width: 0;
+            display: flex; align-items: center; gap: 16px; flex: 1; min-width: 0;
         }
         .info-bar-number {
-            font-size: 32px;
-            font-weight: 800;
-            color: var(--primary);
-            font-variant-numeric: tabular-nums;
-            flex-shrink: 0;
+            font-size: 32px; font-weight: 800; color: var(--primary);
+            font-variant-numeric: tabular-nums; flex-shrink: 0;
         }
-        .info-bar-details {
-            flex: 1;
-            min-width: 0;
-        }
+        .info-bar-details { flex: 1; min-width: 0; }
         .info-bar-name {
-            font-size: 22px;
-            font-weight: 700;
-            color: #fff;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            font-size: 22px; font-weight: 700; color: #fff;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
-        .info-bar-group {
-            font-size: 13px;
-            color: var(--accent);
-            margin-top: 2px;
-        }
-        .info-bar-right {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-shrink: 0;
-        }
+        .info-bar-group { font-size: 13px; color: var(--accent); margin-top: 2px; }
+        .info-bar-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
         .info-bar-resolution {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 5px 14px;
-            background: rgba(108,92,231,0.25);
-            border: 1px solid rgba(108,92,231,0.4);
-            border-radius: 8px;
-            font-size: 13px;
-            color: var(--primary);
-            font-weight: 700;
+            display: flex; align-items: center; gap: 6px; padding: 5px 14px;
+            background: rgba(108,92,231,0.25); border: 1px solid rgba(108,92,231,0.4);
+            border-radius: 8px; font-size: 13px; color: var(--primary); font-weight: 700;
         }
         .info-bar-resolution .res-dot {
-            width: 8px; height: 8px;
-            border-radius: 50%;
-            background: var(--success);
-            animation: blink 1.5s infinite;
+            width: 8px; height: 8px; border-radius: 50%; background: var(--success); animation: blink 1.5s infinite;
         }
         .info-bar-live {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 5px 12px;
-            background: rgba(255,107,107,0.2);
-            border: 1px solid rgba(255,107,107,0.3);
-            border-radius: 8px;
-            font-size: 12px;
-            color: var(--danger);
-            font-weight: 700;
+            display: flex; align-items: center; gap: 6px; padding: 5px 12px;
+            background: rgba(255,107,107,0.2); border: 1px solid rgba(255,107,107,0.3);
+            border-radius: 8px; font-size: 12px; color: var(--danger); font-weight: 700;
         }
         .info-bar-live .live-dot {
-            width: 8px; height: 8px;
-            border-radius: 50%;
-            background: var(--danger);
-            animation: blink 1s infinite;
+            width: 8px; height: 8px; border-radius: 50%; background: var(--danger); animation: blink 1s infinite;
         }
 
         /* PLAYER CONTROLS */
@@ -288,14 +237,25 @@
         .now-playing-text { font-size: 14px; font-weight: 600; }
         .now-playing-res { font-size: 11px; color: var(--accent); font-weight: 600; margin-left: 4px; }
 
+        /* TOAST — üstte, bilgi barıyla çakışmasın */
         #toast {
-            position: fixed; bottom: 30px; right: 30px;
-            background: var(--bg-card); border: 1px solid var(--border);
-            border-radius: 12px; padding: 14px 20px; z-index: 9999;
-            display: none; animation: slideUp 0.3s;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3); max-width: 300px;
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 20px;
+            z-index: 9999;
+            display: none;
+            animation: toastSlideDown 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 300px;
         }
-        @keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+        @keyframes toastSlideDown {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
         .toast-content { display: flex; align-items: center; gap: 10px; font-size: 14px; }
 
         #bufferingSpinner {
@@ -329,7 +289,7 @@
             align-items: center; justify-content: center; backdrop-filter: blur(10px);
         }
 
-        /* MOBILE */
+        /* ==================== MOBİL ==================== */
         @media (max-width: 768px) {
             #sidebar { width: 100%; border-right: none; }
             #mobileMenuBtn { display: flex; }
@@ -347,12 +307,27 @@
             .channel-num { font-size: 10px; padding: 2px 6px; }
             .channel-count { padding: 6px 12px; font-size: 11px; }
 
-            #channelInfoBar { padding: 30px 16px 14px 16px; }
-            .info-bar-number { font-size: 24px; }
+            /* Info Bar mobil düzeltme */
+            #channelInfoBar {
+                padding: 25px 14px 12px 14px;
+                z-index: 100;
+            }
+            .info-bar-content {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            .info-bar-left { gap: 10px; width: 100%; }
+            .info-bar-number { font-size: 22px; }
             .info-bar-name { font-size: 16px; }
             .info-bar-group { font-size: 11px; }
-            .info-bar-resolution { font-size: 11px; padding: 4px 10px; }
-            .info-bar-live { font-size: 10px; padding: 4px 8px; }
+            .info-bar-right {
+                width: 100%;
+                justify-content: flex-start;
+                gap: 8px;
+            }
+            .info-bar-resolution { font-size: 11px; padding: 3px 10px; }
+            .info-bar-live { font-size: 10px; padding: 3px 8px; }
 
             #playerControls { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
             .controls-left { gap: 8px; }
@@ -369,9 +344,12 @@
             .key-badge { padding: 3px 8px; font-size: 10px; }
             #numberOverlay { top: 15px; right: 15px; padding: 12px 18px; }
             .number-display { font-size: 36px; }
-            #toast { bottom: 15px; right: 15px; left: 15px; max-width: none; padding: 10px 16px; }
+
+            /* Toast mobil */
+            #toast { top: 15px; right: 15px; left: 15px; max-width: none; padding: 10px 16px; }
             .toast-content { font-size: 13px; }
         }
+
         @media (max-width: 480px) {
             .sidebar-header { padding: 10px 12px; min-height: 50px; }
             .sidebar-header .logo { font-size: 16px; }
@@ -385,11 +363,16 @@
             .ctrl-btn { width: 32px; height: 32px; font-size: 13px; }
             .volume-slider { width: 50px; }
 
-            .info-bar-number { font-size: 20px; }
+            #channelInfoBar { padding: 20px 10px 10px 10px; }
+            .info-bar-number { font-size: 18px; }
             .info-bar-name { font-size: 14px; }
-            .info-bar-content { gap: 10px; }
-            .info-bar-left { gap: 10px; }
+            .info-bar-left { gap: 8px; }
+            .info-bar-resolution { font-size: 10px; padding: 2px 8px; }
+            .info-bar-resolution .res-dot { width: 6px; height: 6px; }
+            .info-bar-live { font-size: 9px; padding: 2px 6px; }
+            .info-bar-live .live-dot { width: 6px; height: 6px; }
         }
+
         @media (max-height: 500px) and (orientation: landscape) {
             #sidebar { width: 300px; }
             .sidebar-header { min-height: 44px; padding: 8px 12px; }
@@ -398,10 +381,11 @@
             .categories-wrapper { padding: 6px 12px; }
             .cat-btn { padding: 3px 8px; font-size: 10px; }
             .channel-count { padding: 4px 12px; font-size: 10px; }
-            #channelInfoBar { padding: 20px 20px 10px 20px; }
+            #channelInfoBar { padding: 15px 16px 8px 16px; }
             .info-bar-name { font-size: 16px; }
             .info-bar-number { font-size: 22px; }
         }
+
         @media (pointer: coarse) {
             .channel-item { min-height: 54px; }
             .cat-btn { min-height: 32px; }
@@ -463,7 +447,6 @@
             </div>
             <div id="bufferingSpinner"><div class="spinner"></div></div>
 
-            <!-- Tivimate Tarzı Alt Bar -->
             <div id="channelInfoBar">
                 <div class="info-bar-content">
                     <div class="info-bar-left">
@@ -515,278 +498,120 @@
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js"></script>
 
 <script>
-const M3U_URL = 'https://raw.githubusercontent.com/kadirsener1/tivim/refs/heads/main/merged.m3u';
-const AUTO_REFRESH = 30 * 60 * 1000;
+const M3U_URL='https://raw.githubusercontent.com/kadirsener1/tivim/refs/heads/main/merged.m3u';
+const AUTO_REFRESH=30*60*1000;
 
-let channels = [], filteredChannels = [], categories = [], allCategoryNames = [];
-let currentCategory = 'all', currentChannelIndex = -1, focusedChannelIndex = 0;
-let sidebarVisible = true, sidebarOverlayMode = false, isPlaying = false;
-let hlsInstance = null, controlsTimeout = null, overlayTimeout = null;
-let numberBuffer = '', numberTimeout = null;
-let sidebarFocusMode = 'channels', focusedCategoryIndex = 0;
-let currentResolution = '', stallChecker = null, resolutionChecker = null;
+let channels=[],filteredChannels=[],categories=[],allCategoryNames=[];
+let currentCategory='all',currentChannelIndex=-1,focusedChannelIndex=0;
+let sidebarVisible=true,sidebarOverlayMode=false,isPlaying=false;
+let hlsInstance=null,controlsTimeout=null,overlayTimeout=null;
+let numberBuffer='',numberTimeout=null;
+let sidebarFocusMode='channels',focusedCategoryIndex=0;
+let currentResolution='',stallChecker=null,resolutionChecker=null;
 
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded',async()=>{
     await loadM3U(M3U_URL);
-    sidebarVisible = true;
+    sidebarVisible=true;
     document.getElementById('sidebar').classList.remove('hidden');
-    setTimeout(() => document.getElementById('loadingScreen').classList.add('hide'), 2000);
-    setupEventListeners();
-    setupMouseEvents();
-    setupTouchGestures();
-    setInterval(async () => {
-        const pi = currentChannelIndex;
-        await loadM3U(M3U_URL);
-        if (pi >= 0 && pi < channels.length) currentChannelIndex = pi;
-    }, AUTO_REFRESH);
+    setTimeout(()=>document.getElementById('loadingScreen').classList.add('hide'),2000);
+    setupEventListeners();setupMouseEvents();setupTouchGestures();
+    setInterval(async()=>{const pi=currentChannelIndex;await loadM3U(M3U_URL);if(pi>=0&&pi<channels.length)currentChannelIndex=pi;},AUTO_REFRESH);
 });
 
-async function loadM3U(url) {
-    try {
-        const r = await fetch(url); if (!r.ok) throw 0;
-        channels = parseM3U(await r.text());
-    } catch(e) {
-        try {
-            const r = await fetch('https://api.allorigins.win/raw?url='+encodeURIComponent(url));
-            channels = parseM3U(await r.text());
-        } catch(e2) { channels = []; showToast('❌','M3U yüklenemedi'); return; }
-    }
+async function loadM3U(url){
+    try{const r=await fetch(url);if(!r.ok)throw 0;channels=parseM3U(await r.text());}
+    catch(e){try{const r=await fetch('https://api.allorigins.win/raw?url='+encodeURIComponent(url));channels=parseM3U(await r.text());}catch(e2){channels=[];showToast('❌','M3U yüklenemedi');return;}}
     channels.forEach((c,i)=>{c.index=i;c.number=i+1;});
-    extractCategories(); filterChannels(); forceRebuildList();
+    extractCategories();filterChannels();forceRebuildList();
     showToast('✅',`${channels.length} kanal yüklendi`);
 }
 
-function parseM3U(t) {
-    const lines=t.split('\n'), p=[]; let c=null;
-    for(let i=0;i<lines.length;i++){
-        const l=lines[i].trim();
-        if(l.startsWith('#EXTINF:')){
-            c={};
-            const nm=l.match(/tvg-name="([^"]*)"/), lg=l.match(/tvg-logo="([^"]*)"/),
-                  gr=l.match(/group-title="([^"]*)"/), tl=l.match(/,(.+)$/);
-            c.name=nm?nm[1]:(tl?tl[1].trim():'Bilinmeyen');
-            c.logo=lg?lg[1]:''; c.group=gr?gr[1]:'Diğer';
-            if(!c.name&&tl) c.name=tl[1].trim();
-        } else if(l&&!l.startsWith('#')&&c){ c.url=l; if(c.name&&c.url)p.push(c); c=null; }
-    }
+function parseM3U(t){
+    const lines=t.split('\n'),p=[];let c=null;
+    for(let i=0;i<lines.length;i++){const l=lines[i].trim();
+        if(l.startsWith('#EXTINF:')){c={};const nm=l.match(/tvg-name="([^"]*)"/),lg=l.match(/tvg-logo="([^"]*)"/),gr=l.match(/group-title="([^"]*)"/),tl=l.match(/,(.+)$/);c.name=nm?nm[1]:(tl?tl[1].trim():'Bilinmeyen');c.logo=lg?lg[1]:'';c.group=gr?gr[1]:'Diğer';if(!c.name&&tl)c.name=tl[1].trim();}
+        else if(l&&!l.startsWith('#')&&c){c.url=l;if(c.name&&c.url)p.push(c);c=null;}}
     return p;
 }
 
-function extractCategories() {
-    const s=new Set(); channels.forEach(c=>{if(c.group)s.add(c.group);});
-    categories=Array.from(s).sort((a,b)=>a.localeCompare(b,'tr'));
-    allCategoryNames=['all',...categories]; renderCategories();
+function extractCategories(){const s=new Set();channels.forEach(c=>{if(c.group)s.add(c.group);});categories=Array.from(s).sort((a,b)=>a.localeCompare(b,'tr'));allCategoryNames=['all',...categories];renderCategories();}
+
+function renderCategories(){
+    const c=document.getElementById('categories'),isCM=sidebarFocusMode==='categories'&&sidebarVisible;
+    let h=`<button class="cat-btn ${currentCategory==='all'?'active':''} ${isCM&&focusedCategoryIndex===0?'cat-focused':''}" onclick="selectCategory('all')">Tümü <span class="cat-count">${channels.length}</span></button>`;
+    categories.forEach((cat,i)=>{const cnt=channels.filter(c=>c.group===cat).length,ci=i+1;
+        h+=`<button class="cat-btn ${currentCategory===cat?'active':''} ${isCM&&focusedCategoryIndex===ci?'cat-focused':''}" onclick="selectCategory('${cat.replace(/'/g,"\\'")}')">${cat} <span class="cat-count">${cnt}</span></button>`;});
+    c.innerHTML=h;if(isCM){const f=c.querySelector('.cat-focused');if(f)f.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});}
 }
 
-function renderCategories() {
-    const c=document.getElementById('categories');
-    const isCM=sidebarFocusMode==='categories'&&sidebarVisible;
-    let h=`<button class="cat-btn ${currentCategory==='all'?'active':''} ${isCM&&focusedCategoryIndex===0?'cat-focused':''}"
-        onclick="selectCategory('all')">Tümü <span class="cat-count">${channels.length}</span></button>`;
-    categories.forEach((cat,i)=>{
-        const cnt=channels.filter(c=>c.group===cat).length, ci=i+1;
-        h+=`<button class="cat-btn ${currentCategory===cat?'active':''} ${isCM&&focusedCategoryIndex===ci?'cat-focused':''}"
-            onclick="selectCategory('${cat.replace(/'/g,"\\'")}')">${cat} <span class="cat-count">${cnt}</span></button>`;
-    });
-    c.innerHTML=h;
-    if(isCM){const f=c.querySelector('.cat-focused');if(f)f.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});}
-}
-
-function selectCategory(cat) {
-    currentCategory=cat; focusedCategoryIndex=allCategoryNames.indexOf(cat);
-    if(focusedCategoryIndex===-1)focusedCategoryIndex=0;
-    renderCategories(); filterChannels(); focusedChannelIndex=0; forceRebuildList();
-}
-
-function filterChannels() {
-    filteredChannels=channels.filter(c=>currentCategory==='all'||c.group===currentCategory);
-    document.getElementById('channelCount').textContent=`${filteredChannels.length} kanal`;
-}
-
+function selectCategory(cat){currentCategory=cat;focusedCategoryIndex=allCategoryNames.indexOf(cat);if(focusedCategoryIndex===-1)focusedCategoryIndex=0;renderCategories();filterChannels();focusedChannelIndex=0;forceRebuildList();}
+function filterChannels(){filteredChannels=channels.filter(c=>currentCategory==='all'||c.group===currentCategory);document.getElementById('channelCount').textContent=`${filteredChannels.length} kanal`;}
 function getListHash(){return currentCategory+'|'+filteredChannels.length+'|'+currentChannelIndex;}
 function forceRebuildList(){document.getElementById('channelList').dataset.listHash='';renderChannelList();}
 
-function renderChannelList() {
+function renderChannelList(){
     const container=document.getElementById('channelList');
-    if(!filteredChannels.length){
-        container.innerHTML=`<div style="text-align:center;padding:40px;color:var(--text-dim);"><div style="font-size:40px;margin-bottom:12px;">📭</div><div>Kanal bulunamadı</div></div>`;
-        container.dataset.listHash=getListHash(); return;
-    }
+    if(!filteredChannels.length){container.innerHTML=`<div style="text-align:center;padding:40px;color:var(--text-dim);"><div style="font-size:40px;margin-bottom:12px;">📭</div><div>Kanal bulunamadı</div></div>`;container.dataset.listHash=getListHash();return;}
     const hash=getListHash();
-    if(container.dataset.listHash!==hash){
-        const isCM=sidebarFocusMode==='channels'; let h='';
-        filteredChannels.forEach((ch,i)=>{
-            const isA=currentChannelIndex===ch.index, isF=focusedChannelIndex===i&&sidebarVisible&&isCM;
-            const logo=ch.logo?`<img src="${ch.logo}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='📺'">`:'📺';
-            h+=`<div class="channel-item${isA?' active':''}${isF?' focused':''}" data-idx="${i}" onclick="playChannel(${i})" id="ch-${i}">
-                <div class="channel-num">${ch.number}</div><div class="channel-logo">${logo}</div>
-                <div class="channel-info"><div class="channel-name">${ch.name}</div><div class="channel-group">${ch.group||''}</div></div></div>`;
-        });
-        container.innerHTML=h; container.dataset.listHash=hash;
-    } else updateFocusUI();
+    if(container.dataset.listHash!==hash){const isCM=sidebarFocusMode==='channels';let h='';
+        filteredChannels.forEach((ch,i)=>{const isA=currentChannelIndex===ch.index,isF=focusedChannelIndex===i&&sidebarVisible&&isCM;const logo=ch.logo?`<img src="${ch.logo}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='📺'">`:'📺';
+            h+=`<div class="channel-item${isA?' active':''}${isF?' focused':''}" data-idx="${i}" onclick="playChannel(${i})" id="ch-${i}"><div class="channel-num">${ch.number}</div><div class="channel-logo">${logo}</div><div class="channel-info"><div class="channel-name">${ch.name}</div><div class="channel-group">${ch.group||''}</div></div></div>`;});
+        container.innerHTML=h;container.dataset.listHash=hash;}else updateFocusUI();
 }
 
-function updateFocusUI() {
-    const container=document.getElementById('channelList'), items=container.children, isCM=sidebarFocusMode==='channels';
-    for(let i=0;i<items.length;i++){
-        const el=items[i]; if(!el.dataset||el.dataset.idx===undefined)continue;
-        const idx=parseInt(el.dataset.idx), ch=filteredChannels[idx]; if(!ch)continue;
-        const wA=currentChannelIndex===ch.index, wF=idx===focusedChannelIndex&&sidebarVisible&&isCM;
-        if(el.classList.contains('active')!==wA)el.classList.toggle('active',wA);
-        if(el.classList.contains('focused')!==wF)el.classList.toggle('focused',wF);
-    }
-    if(isCM&&sidebarVisible){
-        const fe=document.getElementById(`ch-${focusedChannelIndex}`);
-        if(fe){
-            const lE=container, eT=fe.offsetTop-lE.offsetTop, eH=fe.offsetHeight, lH=lE.clientHeight, sT=lE.scrollTop;
-            if(eT<sT)lE.scrollTop=eT;
-            else if(eT+eH>sT+lH)lE.scrollTop=eT+eH-lH;
-        }
-    }
+function updateFocusUI(){
+    const container=document.getElementById('channelList'),items=container.children,isCM=sidebarFocusMode==='channels';
+    for(let i=0;i<items.length;i++){const el=items[i];if(!el.dataset||el.dataset.idx===undefined)continue;const idx=parseInt(el.dataset.idx),ch=filteredChannels[idx];if(!ch)continue;
+        const wA=currentChannelIndex===ch.index,wF=idx===focusedChannelIndex&&sidebarVisible&&isCM;
+        if(el.classList.contains('active')!==wA)el.classList.toggle('active',wA);if(el.classList.contains('focused')!==wF)el.classList.toggle('focused',wF);}
+    if(isCM&&sidebarVisible){const fe=document.getElementById(`ch-${focusedChannelIndex}`);if(fe){const lE=container,eT=fe.offsetTop-lE.offsetTop,eH=fe.offsetHeight,lH=lE.clientHeight,sT=lE.scrollTop;if(eT<sT)lE.scrollTop=eT;else if(eT+eH>sT+lH)lE.scrollTop=eT+eH-lH;}}
 }
 
-// === RESOLUTION ===
-function getResLabel(w,h){
-    if(h>=2160||w>=3840)return'4K UHD';if(h>=1440||w>=2560)return'1440p QHD';
-    if(h>=1080||w>=1920)return'1080p FHD';if(h>=720||w>=1280)return'720p HD';
-    if(h>=576)return'576p SD';if(h>=480)return'480p SD';if(h>=360)return'360p';
-    if(h>0)return h+'p';return'';
-}
+function getResLabel(w,h){if(h>=2160||w>=3840)return'4K UHD';if(h>=1440||w>=2560)return'1440p QHD';if(h>=1080||w>=1920)return'1080p FHD';if(h>=720||w>=1280)return'720p HD';if(h>=576)return'576p SD';if(h>=480)return'480p SD';if(h>=360)return'360p';if(h>0)return h+'p';return'';}
 
 function updateResDisplay(txt){
     currentResolution=txt;
-    const el=document.getElementById('infoBarRes'), et=document.getElementById('infoBarResText');
+    const el=document.getElementById('infoBarRes'),et=document.getElementById('infoBarResText');
     if(txt){et.textContent=txt;el.style.display='flex';}else{el.style.display='none';}
     document.getElementById('nowPlayingRes').textContent=txt?`• ${txt}`:'';
 }
 
-function startResMonitor(){
-    if(resolutionChecker)clearInterval(resolutionChecker);
-    const v=document.getElementById('videoPlayer');
-    currentResolution=''; updateResDisplay('');
-    resolutionChecker=setInterval(()=>{
-        if(v.videoWidth>0&&v.videoHeight>0){
-            const w=v.videoWidth,h=v.videoHeight,l=getResLabel(w,h);
-            const nr=`${w}×${h} ${l}`;
-            if(nr!==currentResolution)updateResDisplay(nr);
-        }
-    },2000);
-}
+function startResMonitor(){if(resolutionChecker)clearInterval(resolutionChecker);const v=document.getElementById('videoPlayer');currentResolution='';updateResDisplay('');
+    resolutionChecker=setInterval(()=>{if(v.videoWidth>0&&v.videoHeight>0){const w=v.videoWidth,h=v.videoHeight,l=getResLabel(w,h),nr=`${w}×${h} ${l}`;if(nr!==currentResolution)updateResDisplay(nr);}},2000);}
 
-// === PLAYER ===
 function playChannel(fi){
-    const ch=filteredChannels[fi]; if(!ch)return;
-    currentChannelIndex=ch.index; focusedChannelIndex=fi;
-    const video=document.getElementById('videoPlayer'), url=ch.url;
-
-    if(hlsInstance){hlsInstance.destroy();hlsInstance=null;}
-    if(stallChecker){clearInterval(stallChecker);stallChecker=null;}
-    if(resolutionChecker){clearInterval(resolutionChecker);resolutionChecker=null;}
-
-    video.removeAttribute('src'); video.load(); updateResDisplay('');
-    document.getElementById('welcomeScreen').style.display='none';
-    document.getElementById('bufferingSpinner').style.display='block';
-
+    const ch=filteredChannels[fi];if(!ch)return;currentChannelIndex=ch.index;focusedChannelIndex=fi;
+    const video=document.getElementById('videoPlayer'),url=ch.url;
+    if(hlsInstance){hlsInstance.destroy();hlsInstance=null;}if(stallChecker){clearInterval(stallChecker);stallChecker=null;}if(resolutionChecker){clearInterval(resolutionChecker);resolutionChecker=null;}
+    video.removeAttribute('src');video.load();updateResDisplay('');
+    document.getElementById('welcomeScreen').style.display='none';document.getElementById('bufferingSpinner').style.display='block';
     const isHLS=/\.m3u8/i.test(url)||/m3u8/i.test(url);
 
     if(isHLS&&Hls.isSupported()){
-        hlsInstance=new Hls({
-            // === OPTİMAL AKICILIK AYARLARI ===
-            maxBufferLength: 30,
-            maxMaxBufferLength: 60,
-            maxBufferSize: 40*1000*1000,
-            maxBufferHole: 0.5,
-            backBufferLength: 15,
-
-            manifestLoadingTimeOut: 12000,
-            manifestLoadingMaxRetry: 3,
-            manifestLoadingRetryDelay: 500,
-            levelLoadingTimeOut: 12000,
-            levelLoadingMaxRetry: 3,
-            fragLoadingTimeOut: 20000,
-            fragLoadingMaxRetry: 5,
-            fragLoadingRetryDelay: 500,
-
-            enableWorker: true,
-            lowLatencyMode: false,
-            startFragPrefetch: true,
-            progressive: true,
-            testBandwidth: true,
-
-            // ABR — kalite geçişlerini yumuşat
-            abrEwmaDefaultEstimate: 1500000,
-            abrBandWidthFactor: 0.85,
-            abrBandWidthUpFactor: 0.6,
-            abrMaxWithRealBitrate: true,
-
-            liveSyncDurationCount: 3,
-            liveMaxLatencyDurationCount: 6,
-            liveDurationInfinity: true,
-
-            nudgeOffset: 0.1,
-            nudgeMaxRetry: 8,
-            startPosition: -1,
-
-            stretchShortVideoTrack: true,
-            forceKeyFrameOnDiscontinuity: true,
-            appendErrorMaxRetry: 5,
-        });
-
-        hlsInstance.loadSource(url);
-        hlsInstance.attachMedia(video);
+        hlsInstance=new Hls({maxBufferLength:30,maxMaxBufferLength:60,maxBufferSize:40*1000*1000,maxBufferHole:0.5,backBufferLength:15,
+            manifestLoadingTimeOut:12000,manifestLoadingMaxRetry:3,manifestLoadingRetryDelay:500,levelLoadingTimeOut:12000,levelLoadingMaxRetry:3,
+            fragLoadingTimeOut:20000,fragLoadingMaxRetry:5,fragLoadingRetryDelay:500,enableWorker:true,lowLatencyMode:false,startFragPrefetch:true,
+            progressive:true,testBandwidth:true,abrEwmaDefaultEstimate:1500000,abrBandWidthFactor:0.85,abrBandWidthUpFactor:0.6,abrMaxWithRealBitrate:true,
+            liveSyncDurationCount:3,liveMaxLatencyDurationCount:6,liveDurationInfinity:true,nudgeOffset:0.1,nudgeMaxRetry:8,startPosition:-1,
+            stretchShortVideoTrack:true,forceKeyFrameOnDiscontinuity:true,appendErrorMaxRetry:5});
+        hlsInstance.loadSource(url);hlsInstance.attachMedia(video);
         hlsInstance.on(Hls.Events.MANIFEST_PARSED,()=>{video.play().catch(()=>{});});
         hlsInstance.on(Hls.Events.FRAG_BUFFERED,()=>{document.getElementById('bufferingSpinner').style.display='none';});
+        hlsInstance.on(Hls.Events.ERROR,(e,d)=>{if(d.fatal){if(d.type===Hls.ErrorTypes.NETWORK_ERROR){showToast('🔄','Bağlantı sorunu...');setTimeout(()=>{if(hlsInstance)hlsInstance.startLoad();},1500);}else if(d.type===Hls.ErrorTypes.MEDIA_ERROR){hlsInstance.recoverMediaError();}else{showToast('❌','Kanal yüklenemedi');document.getElementById('bufferingSpinner').style.display='none';}}if(d.details==='bufferStalledError'&&video.currentTime>0)video.currentTime+=0.1;});
+    }else if(video.canPlayType('application/vnd.apple.mpegurl')&&isHLS){video.src=url;video.play().catch(()=>{});}
+    else{video.src=url;video.play().catch(()=>{});}
 
-        hlsInstance.on(Hls.Events.ERROR,(e,d)=>{
-            if(d.fatal){
-                if(d.type===Hls.ErrorTypes.NETWORK_ERROR){
-                    showToast('🔄','Bağlantı sorunu...');
-                    setTimeout(()=>{if(hlsInstance)hlsInstance.startLoad();},1500);
-                }else if(d.type===Hls.ErrorTypes.MEDIA_ERROR){hlsInstance.recoverMediaError();}
-                else{showToast('❌','Kanal yüklenemedi');document.getElementById('bufferingSpinner').style.display='none';}
-            }
-            if(d.details==='bufferStalledError'&&video.currentTime>0){
-                video.currentTime+=0.1;
-            }
-        });
-    } else if(video.canPlayType('application/vnd.apple.mpegurl')&&isHLS){
-        video.src=url;video.play().catch(()=>{});
-    } else {
-        video.src=url;video.play().catch(()=>{});
-    }
-
-    video.onplaying=()=>{
-        document.getElementById('bufferingSpinner').style.display='none';
-        isPlaying=true;document.getElementById('playPauseBtn').textContent='⏸';
-    };
+    video.onplaying=()=>{document.getElementById('bufferingSpinner').style.display='none';isPlaying=true;document.getElementById('playPauseBtn').textContent='⏸';};
     video.onwaiting=()=>{document.getElementById('bufferingSpinner').style.display='block';};
     video.oncanplaythrough=()=>{document.getElementById('bufferingSpinner').style.display='none';};
-    video.onerror=()=>{
-        document.getElementById('bufferingSpinner').style.display='none';
-        if(stallChecker){clearInterval(stallChecker);stallChecker=null;}
-        if(resolutionChecker){clearInterval(resolutionChecker);resolutionChecker=null;}
-        showToast('❌','Bu kanal oynatılamıyor');
-    };
+    video.onerror=()=>{document.getElementById('bufferingSpinner').style.display='none';if(stallChecker){clearInterval(stallChecker);stallChecker=null;}if(resolutionChecker){clearInterval(resolutionChecker);resolutionChecker=null;}showToast('❌','Bu kanal oynatılamıyor');};
 
-    // Stall recovery
     let lastT=-1,sc=0;
-    stallChecker=setInterval(()=>{
-        if(video.paused||video.ended||!isPlaying)return;
-        if(video.currentTime===lastT&&video.readyState>=2){
-            sc++;
-            if(sc>=2){
-                const b=video.buffered;
-                if(b.length>0&&b.end(b.length-1)>video.currentTime+0.5)video.currentTime+=0.2;
-                sc=0;
-            }
-        }else sc=0;
-        lastT=video.currentTime;
-    },3000);
+    stallChecker=setInterval(()=>{if(video.paused||video.ended||!isPlaying)return;if(video.currentTime===lastT&&video.readyState>=2){sc++;if(sc>=2){const b=video.buffered;if(b.length>0&&b.end(b.length-1)>video.currentTime+0.5)video.currentTime+=0.2;sc=0;}}else sc=0;lastT=video.currentTime;},3000);
 
     startResMonitor();
     document.getElementById('nowPlayingText').textContent=ch.name;
-    showChannelInfoBar(ch);
-    forceRebuildList();
+    showChannelInfoBar(ch);forceRebuildList();
 
     if(window.innerWidth<=768||sidebarOverlayMode){setTimeout(()=>hideSidebar(),600);}
     else{setTimeout(()=>{sidebarOverlayMode=true;hideSidebar();},800);}
@@ -811,20 +636,11 @@ function setVolume(val){const v=document.getElementById('videoPlayer');v.volume=
 function toggleFullscreen(){if(!document.fullscreenElement)document.documentElement.requestFullscreen().catch(()=>{});else document.exitFullscreen();}
 
 function toggleSidebar(){sidebarVisible?hideSidebar():showSidebar();}
-function showSidebar(){
-    const s=document.getElementById('sidebar');s.classList.remove('hidden');
-    if(sidebarOverlayMode)s.classList.add('overlay-mode');
-    sidebarVisible=true;sidebarFocusMode='channels';updateFocusModeIndicator();forceRebuildList();renderCategories();
-}
+function showSidebar(){const s=document.getElementById('sidebar');s.classList.remove('hidden');if(sidebarOverlayMode)s.classList.add('overlay-mode');sidebarVisible=true;sidebarFocusMode='channels';updateFocusModeIndicator();forceRebuildList();renderCategories();}
 function hideSidebar(){document.getElementById('sidebar').classList.add('hidden');sidebarVisible=false;sidebarFocusMode='channels';updateFocusModeIndicator();}
 function updateFocusModeIndicator(){document.getElementById('focusModeIndicator').classList.toggle('show',sidebarVisible&&sidebarFocusMode==='categories');}
 
-function setupMouseEvents(){
-    const p=document.getElementById('playerArea');
-    p.addEventListener('mousemove',showControls);
-    p.addEventListener('click',(e)=>{if(e.target===document.getElementById('videoPlayer')||e.target===document.getElementById('videoContainer'))showControls();});
-    p.addEventListener('touchstart',showControls,{passive:true});
-}
+function setupMouseEvents(){const p=document.getElementById('playerArea');p.addEventListener('mousemove',showControls);p.addEventListener('click',(e)=>{if(e.target===document.getElementById('videoPlayer')||e.target===document.getElementById('videoContainer'))showControls();});p.addEventListener('touchstart',showControls,{passive:true});}
 function showControls(){const c=document.getElementById('playerControls');c.classList.add('visible');clearTimeout(controlsTimeout);controlsTimeout=setTimeout(()=>c.classList.remove('visible'),4000);}
 
 function setupTouchGestures(){
@@ -839,45 +655,19 @@ function setupTouchGestures(){
 function setupEventListeners(){document.addEventListener('keydown',handleKeydown);}
 
 function handleKeydown(e){
-    const ae=document.activeElement;
-    if(ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'||ae.tagName==='SELECT')){if(e.key==='Escape'){ae.blur();e.preventDefault();}return;}
-
+    const ae=document.activeElement;if(ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'||ae.tagName==='SELECT')){if(e.key==='Escape'){ae.blur();e.preventDefault();}return;}
     switch(e.key){
-        case'ArrowLeft':e.preventDefault();
-            if(sidebarVisible){
-                if(sidebarFocusMode==='channels'){sidebarFocusMode='categories';focusedCategoryIndex=allCategoryNames.indexOf(currentCategory);if(focusedCategoryIndex<0)focusedCategoryIndex=0;updateFocusModeIndicator();renderCategories();updateFocusUI();}
-                else{if(focusedCategoryIndex>0){focusedCategoryIndex--;renderCategories();}}
-            }else{sidebarOverlayMode=true;showSidebar();}
-            break;
-        case'ArrowRight':e.preventDefault();
-            if(sidebarVisible){if(sidebarFocusMode==='categories'){if(focusedCategoryIndex<allCategoryNames.length-1){focusedCategoryIndex++;renderCategories();}}else hideSidebar();}
-            break;
-        case'ArrowUp':e.preventDefault();
-            if(sidebarVisible){if(sidebarFocusMode==='channels'&&focusedChannelIndex>0){focusedChannelIndex--;updateFocusUI();}}
-            else{if(currentChannelIndex>=0)playPrevChannel();else{sidebarOverlayMode=true;showSidebar();}}
-            break;
-        case'ArrowDown':e.preventDefault();
-            if(sidebarVisible){
-                if(sidebarFocusMode==='channels'){if(focusedChannelIndex<filteredChannels.length-1){focusedChannelIndex++;updateFocusUI();}}
-                else{const cn=allCategoryNames[focusedCategoryIndex];if(cn!==currentCategory)selectCategory(cn);sidebarFocusMode='channels';focusedChannelIndex=0;updateFocusModeIndicator();renderCategories();forceRebuildList();}
-            }else{if(currentChannelIndex>=0)playNextChannel();else{sidebarOverlayMode=true;showSidebar();}}
-            break;
-        case'Enter':e.preventDefault();
-            if(sidebarVisible){
-                if(sidebarFocusMode==='categories'){const cn=allCategoryNames[focusedCategoryIndex];selectCategory(cn);sidebarFocusMode='channels';focusedChannelIndex=0;updateFocusModeIndicator();renderCategories();forceRebuildList();showToast('📂',cn==='all'?'Tümü':cn);}
-                else if(filteredChannels.length>0)playChannel(focusedChannelIndex);
-            }else{sidebarOverlayMode=true;showSidebar();}
-            break;
-        case'Escape':case'Backspace':e.preventDefault();
-            if(sidebarVisible){if(sidebarFocusMode==='categories'){sidebarFocusMode='channels';updateFocusModeIndicator();renderCategories();updateFocusUI();}else hideSidebar();}
-            break;
+        case'ArrowLeft':e.preventDefault();if(sidebarVisible){if(sidebarFocusMode==='channels'){sidebarFocusMode='categories';focusedCategoryIndex=allCategoryNames.indexOf(currentCategory);if(focusedCategoryIndex<0)focusedCategoryIndex=0;updateFocusModeIndicator();renderCategories();updateFocusUI();}else{if(focusedCategoryIndex>0){focusedCategoryIndex--;renderCategories();}}}else{sidebarOverlayMode=true;showSidebar();}break;
+        case'ArrowRight':e.preventDefault();if(sidebarVisible){if(sidebarFocusMode==='categories'){if(focusedCategoryIndex<allCategoryNames.length-1){focusedCategoryIndex++;renderCategories();}}else hideSidebar();}break;
+        case'ArrowUp':e.preventDefault();if(sidebarVisible){if(sidebarFocusMode==='channels'&&focusedChannelIndex>0){focusedChannelIndex--;updateFocusUI();}}else{if(currentChannelIndex>=0)playPrevChannel();else{sidebarOverlayMode=true;showSidebar();}}break;
+        case'ArrowDown':e.preventDefault();if(sidebarVisible){if(sidebarFocusMode==='channels'){if(focusedChannelIndex<filteredChannels.length-1){focusedChannelIndex++;updateFocusUI();}}else{const cn=allCategoryNames[focusedCategoryIndex];if(cn!==currentCategory)selectCategory(cn);sidebarFocusMode='channels';focusedChannelIndex=0;updateFocusModeIndicator();renderCategories();forceRebuildList();}}else{if(currentChannelIndex>=0)playNextChannel();else{sidebarOverlayMode=true;showSidebar();}}break;
+        case'Enter':e.preventDefault();if(sidebarVisible){if(sidebarFocusMode==='categories'){const cn=allCategoryNames[focusedCategoryIndex];selectCategory(cn);sidebarFocusMode='channels';focusedChannelIndex=0;updateFocusModeIndicator();renderCategories();forceRebuildList();showToast('📂',cn==='all'?'Tümü':cn);}else if(filteredChannels.length>0)playChannel(focusedChannelIndex);}else{sidebarOverlayMode=true;showSidebar();}break;
+        case'Escape':case'Backspace':e.preventDefault();if(sidebarVisible){if(sidebarFocusMode==='categories'){sidebarFocusMode='channels';updateFocusModeIndicator();renderCategories();updateFocusUI();}else hideSidebar();}break;
         case' ':e.preventDefault();togglePlayPause();break;
         case'm':case'M':e.preventDefault();toggleMute();break;
         case'f':case'F':e.preventDefault();toggleFullscreen();break;
         case's':case'S':e.preventDefault();toggleSidebar();break;
-        case'Tab':e.preventDefault();
-            if(sidebarVisible){if(sidebarFocusMode==='channels'){sidebarFocusMode='categories';focusedCategoryIndex=allCategoryNames.indexOf(currentCategory);if(focusedCategoryIndex<0)focusedCategoryIndex=0;}else sidebarFocusMode='channels';updateFocusModeIndicator();renderCategories();updateFocusUI();}
-            break;
+        case'Tab':e.preventDefault();if(sidebarVisible){if(sidebarFocusMode==='channels'){sidebarFocusMode='categories';focusedCategoryIndex=allCategoryNames.indexOf(currentCategory);if(focusedCategoryIndex<0)focusedCategoryIndex=0;}else sidebarFocusMode='channels';updateFocusModeIndicator();renderCategories();updateFocusUI();}break;
         case'+':case'=':e.preventDefault();adjustVolume(5);break;
         case'-':case'_':e.preventDefault();adjustVolume(-5);break;
         case'PageUp':e.preventDefault();playPrevChannel();break;
@@ -888,14 +678,7 @@ function handleKeydown(e){
 
 function adjustVolume(d){const v=document.getElementById('videoPlayer');let n=Math.max(0,Math.min(1,v.volume+d/100));v.volume=n;v.muted=n===0;document.getElementById('volumeSlider').value=n*100;document.getElementById('muteBtn').textContent=n===0?'🔇':(n<0.5?'🔉':'🔊');showToast('🔊',`Ses: %${Math.round(n*100)}`);}
 
-function handleNumberInput(d){
-    numberBuffer+=d;document.getElementById('numberDisplay').textContent=numberBuffer;document.getElementById('numberOverlay').style.display='block';
-    clearTimeout(numberTimeout);numberTimeout=setTimeout(()=>{
-        const n=parseInt(numberBuffer);numberBuffer='';document.getElementById('numberOverlay').style.display='none';
-        const i=filteredChannels.findIndex(c=>c.number===n);
-        if(i!==-1){focusedChannelIndex=i;playChannel(i);}else showToast('⚠️',`${n} numaralı kanal bulunamadı`);
-    },1500);
-}
+function handleNumberInput(d){numberBuffer+=d;document.getElementById('numberDisplay').textContent=numberBuffer;document.getElementById('numberOverlay').style.display='block';clearTimeout(numberTimeout);numberTimeout=setTimeout(()=>{const n=parseInt(numberBuffer);numberBuffer='';document.getElementById('numberOverlay').style.display='none';const i=filteredChannels.findIndex(c=>c.number===n);if(i!==-1){focusedChannelIndex=i;playChannel(i);}else showToast('⚠️',`${n} numaralı kanal bulunamadı`);},1500);}
 
 function showToast(i,m){const t=document.getElementById('toast');document.getElementById('toastContent').innerHTML=`<span>${i}</span> ${m}`;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>{t.style.display='none';},3000);}
 </script>
