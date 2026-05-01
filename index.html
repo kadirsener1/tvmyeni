@@ -55,13 +55,12 @@
         .channel-num{font-size:11px;color:var(--text-dim);background:rgba(255,255,255,.05);padding:2px 8px;border-radius:6px;font-weight:600}
         #playerArea{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000;position:relative;width:100%;height:100vh}
         #videoContainer{width:100%;height:100%;position:relative;background:#000}
-        #videoPlayer{width:100%;height:100%;background:#000;object-fit:contain;transform:translateZ(0);-webkit-transform:translateZ(0)}
+        #videoPlayer{width:100%;height:100%;background:#000;object-fit:contain;transform:translateZ(0);-webkit-transform:translateZ(0);position:relative;z-index:2}
 
-        /* Video arka plan resmi */
-        #videoBgImage{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:1;pointer-events:none;transition:opacity .5s ease}
-        #videoBgImage.hide{opacity:0;pointer-events:none}
+        /* Arka plan resmi - video arkasında her zaman durur */
+        #videoBgImage{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:1;pointer-events:none}
 
-        #welcomeScreen{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);z-index:5}
+        #welcomeScreen{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);z-index:5}
         .welcome-icon{font-size:80px;margin-bottom:20px;animation:float 3s ease-in-out infinite}
         @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
         .welcome-title{font-size:28px;font-weight:800;margin-bottom:10px;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
@@ -109,15 +108,6 @@
         #focusModeIndicator{padding:6px 16px;font-size:11px;color:var(--accent);font-weight:600;background:rgba(0,206,201,.1);border-bottom:1px solid rgba(0,206,201,.2);text-align:center;display:none;flex-shrink:0;white-space:nowrap}
         #focusModeIndicator.show{display:block}
         #mobileMenuBtn{display:none;position:fixed;top:15px;left:15px;z-index:900;width:44px;height:44px;border-radius:12px;background:rgba(10,10,26,.9);border:1px solid var(--border);color:var(--text);font-size:20px;cursor:pointer;align-items:center;justify-content:center;backdrop-filter:blur(10px)}
-
-        /* Loading screen arka plan resmi */
-        #loadingScreen{
-            background-image:url('https://raw.githubusercontent.com/kadirsener1/tvmyeni/refs/heads/main/bg.JPG');
-            background-size:cover;
-            background-position:center;
-            background-repeat:no-repeat;
-        }
-        .loader-overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(10,10,26,0.7);display:flex;flex-direction:column;align-items:center;justify-content:center}
 
         @media(max-width:768px){
             #sidebar{width:100%;border-right:none}
@@ -213,11 +203,9 @@
 </head>
 <body>
 <div id="loadingScreen">
-    <div class="loader-overlay">
-        <div class="loader-logo">📺</div>
-        <div class="loader-text">TiViM Player</div>
-        <div class="loader-bar"><div class="loader-bar-inner"></div></div>
-    </div>
+    <div class="loader-logo">📺</div>
+    <div class="loader-text">TiViM Player</div>
+    <div class="loader-bar"><div class="loader-bar-inner"></div></div>
 </div>
 <div id="toast"><div class="toast-content" id="toastContent"></div></div>
 <button id="mobileMenuBtn" onclick="toggleSidebar()">☰</button>
@@ -239,8 +227,7 @@
     </div>
     <div id="playerArea">
         <div id="videoContainer">
-            <!-- Arka plan resmi: video açılana kadar görünür -->
-            <img id="videoBgImage" src="https://raw.githubusercontent.com/kadirsener1/tivim/refs/heads/main/bg.jpg" alt="">
+            <img id="videoBgImage" src="https://raw.githubusercontent.com/kadirsener1/tvmyeni/refs/heads/main/bg.JPG" alt="">
             <video id="videoPlayer" playsinline></video>
             <div id="welcomeScreen">
                 <div class="welcome-icon">📺</div>
@@ -296,13 +283,6 @@
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js"></script>
 <script>
 const M3U_URL='https://raw.githubusercontent.com/kadirsener1/tivim/refs/heads/main/merged.m3u';
-
-// ============================
-// ARKA PLAN RESMİ AYARI
-// Bu URL'yi kendi resminizle değiştirin:
-const BG_IMAGE_URL='https://raw.githubusercontent.com/kadirsener1/tivim/refs/heads/main/bg.jpg';
-// ============================
-
 const AUTO_REFRESH=30*60*1000;
 let channels=[],filteredChannels=[],categories=[],allCategoryNames=[];
 let currentCategory='all',currentChannelIndex=-1,focusedChannelIndex=0;
@@ -314,10 +294,6 @@ let currentResolution='',stallChecker=null,resolutionChecker=null;
 let currentPlayingUrl='';
 
 document.addEventListener('DOMContentLoaded',async()=>{
-    // Arka plan resimlerini ayarla
-    const bgImg=document.getElementById('videoBgImage');
-    if(bgImg)bgImg.src=BG_IMAGE_URL;
-
     await loadM3U(M3U_URL);
     sidebarVisible=true;document.getElementById('sidebar').classList.remove('hidden');
     setTimeout(()=>document.getElementById('loadingScreen').classList.add('hide'),2000);
@@ -371,6 +347,9 @@ function getResLabel(w,h){if(h>=2160||w>=3840)return'4K UHD';if(h>=1440||w>=2560
 function updateResDisplay(txt){currentResolution=txt;const el=document.getElementById('infoBarRes'),et=document.getElementById('infoBarResText');if(txt){et.textContent=txt;el.style.display='flex';}else{el.style.display='none';}document.getElementById('nowPlayingRes').textContent=txt?`• ${txt}`:'';}
 function startResMonitor(){if(resolutionChecker)clearInterval(resolutionChecker);const v=document.getElementById('videoPlayer');currentResolution='';updateResDisplay('');resolutionChecker=setInterval(()=>{if(v.videoWidth>0&&v.videoHeight>0){const w=v.videoWidth,h=v.videoHeight,l=getResLabel(w,h),nr=`${w}×${h} ${l}`;if(nr!==currentResolution)updateResDisplay(nr);}},2000);}
 
+function showBgImage(){document.getElementById('videoBgImage').style.display='block';}
+function hideBgImage(){document.getElementById('videoBgImage').style.display='none';}
+
 function playChannel(fi){
     const ch=filteredChannels[fi];if(!ch)return;
 
@@ -387,14 +366,13 @@ function playChannel(fi){
     document.getElementById('welcomeScreen').style.display='none';
     document.getElementById('bufferingSpinner').style.display='block';
 
-    // Arka plan resmini henüz gizleme - video oynamaya başlayınca gizlenecek
-    const bgImg=document.getElementById('videoBgImage');
+    // Kanal yüklenirken arka planı göster
+    showBgImage();
 
     const isHLS=/\.m3u8/i.test(url)||/m3u8/i.test(url);
 
     if(isHLS&&Hls.isSupported()){
         hlsInstance=new Hls({
-            // === 50 FPS AKICI YAYIN AYARLARI ===
             maxBufferLength: 30,
             maxMaxBufferLength: 60,
             maxBufferSize: 60 * 1000 * 1000,
@@ -416,7 +394,6 @@ function playChannel(fi){
             progressive: true,
             testBandwidth: true,
 
-            // ABR — kalite geçişi yumuşak, yüksek kalite tercih
             abrEwmaDefaultEstimate: 3000000,
             abrBandWidthFactor: 0.9,
             abrBandWidthUpFactor: 0.7,
@@ -435,30 +412,19 @@ function playChannel(fi){
             appendErrorMaxRetry: 5,
 
             capLevelToPlayerSize: false,
-
-            // FPS ile ilgili: highBufferWatchdogPeriod düşük tutarak akıcılık
             highBufferWatchdogPeriod: 1,
         });
         hlsInstance.loadSource(url);hlsInstance.attachMedia(video);
         hlsInstance.on(Hls.Events.MANIFEST_PARSED,()=>{video.play().catch(()=>{});});
         hlsInstance.on(Hls.Events.FRAG_BUFFERED,()=>{document.getElementById('bufferingSpinner').style.display='none';});
-        hlsInstance.on(Hls.Events.ERROR,(e,d)=>{if(d.fatal){if(d.type===Hls.ErrorTypes.NETWORK_ERROR){showToast('🔄','Bağlantı sorunu...');setTimeout(()=>{if(hlsInstance)hlsInstance.startLoad();},1500);}else if(d.type===Hls.ErrorTypes.MEDIA_ERROR){hlsInstance.recoverMediaError();}else{showToast('❌','Kanal yüklenemedi');document.getElementById('bufferingSpinner').style.display='none';}}if(d.details==='bufferStalledError'&&video.currentTime>0)video.currentTime+=0.1;});
+        hlsInstance.on(Hls.Events.ERROR,(e,d)=>{if(d.fatal){if(d.type===Hls.ErrorTypes.NETWORK_ERROR){showToast('🔄','Bağlantı sorunu...');setTimeout(()=>{if(hlsInstance)hlsInstance.startLoad();},1500);}else if(d.type===Hls.ErrorTypes.MEDIA_ERROR){hlsInstance.recoverMediaError();}else{showToast('❌','Kanal yüklenemedi');document.getElementById('bufferingSpinner').style.display='none';showBgImage();}}if(d.details==='bufferStalledError'&&video.currentTime>0)video.currentTime+=0.1;});
     }else if(video.canPlayType('application/vnd.apple.mpegurl')&&isHLS){video.src=url;video.play().catch(()=>{});}
     else{video.src=url;video.play().catch(()=>{});}
 
-    video.onplaying=()=>{
-        document.getElementById('bufferingSpinner').style.display='none';
-        isPlaying=true;
-        document.getElementById('playPauseBtn').textContent='⏸';
-        // Video oynamaya başladığında arka plan resmini gizle
-        if(bgImg)bgImg.classList.add('hide');
-    };
+    video.onplaying=()=>{document.getElementById('bufferingSpinner').style.display='none';isPlaying=true;document.getElementById('playPauseBtn').textContent='⏸';hideBgImage();};
     video.onwaiting=()=>{document.getElementById('bufferingSpinner').style.display='block';};
     video.oncanplaythrough=()=>{document.getElementById('bufferingSpinner').style.display='none';};
-    video.onerror=()=>{document.getElementById('bufferingSpinner').style.display='none';currentPlayingUrl='';if(stallChecker){clearInterval(stallChecker);stallChecker=null;}if(resolutionChecker){clearInterval(resolutionChecker);resolutionChecker=null;}showToast('❌','Bu kanal oynatılamıyor');
-        // Hata olursa arka planı tekrar göster
-        if(bgImg)bgImg.classList.remove('hide');
-    };
+    video.onerror=()=>{document.getElementById('bufferingSpinner').style.display='none';currentPlayingUrl='';if(stallChecker){clearInterval(stallChecker);stallChecker=null;}if(resolutionChecker){clearInterval(resolutionChecker);resolutionChecker=null;}showToast('❌','Bu kanal oynatılamıyor');showBgImage();};
 
     let lastT=-1,sc=0;
     stallChecker=setInterval(()=>{if(video.paused||video.ended||!isPlaying)return;if(video.currentTime===lastT&&video.readyState>=2){sc++;if(sc>=2){const b=video.buffered;if(b.length>0&&b.end(b.length-1)>video.currentTime+0.5)video.currentTime+=0.1;sc=0;}}else sc=0;lastT=video.currentTime;},3000);
@@ -488,46 +454,23 @@ function setVolume(val){const v=document.getElementById('videoPlayer');v.volume=
 function toggleFullscreen(){
     const el=document.documentElement;
     if(!document.fullscreenElement&&!document.webkitFullscreenElement&&!document.mozFullScreenElement&&!document.msFullscreenElement){
-        // Tam ekran aç
-        if(el.requestFullscreen){
-            el.requestFullscreen().catch(()=>{
-                // Fallback: video elementini tam ekrana al
-                tryVideoFullscreen();
-            });
-        }else if(el.webkitRequestFullscreen){
-            el.webkitRequestFullscreen();
-        }else if(el.mozRequestFullScreen){
-            el.mozRequestFullScreen();
-        }else if(el.msRequestFullscreen){
-            el.msRequestFullscreen();
-        }else{
-            // Son çare: video elementini dene
-            tryVideoFullscreen();
-        }
+        if(el.requestFullscreen){el.requestFullscreen().catch(()=>{tryVideoFullscreen();});}
+        else if(el.webkitRequestFullscreen){el.webkitRequestFullscreen();}
+        else if(el.mozRequestFullScreen){el.mozRequestFullScreen();}
+        else if(el.msRequestFullscreen){el.msRequestFullscreen();}
+        else{tryVideoFullscreen();}
     }else{
-        // Tam ekrandan çık
-        if(document.exitFullscreen){
-            document.exitFullscreen().catch(()=>{});
-        }else if(document.webkitExitFullscreen){
-            document.webkitExitFullscreen();
-        }else if(document.mozCancelFullScreen){
-            document.mozCancelFullScreen();
-        }else if(document.msExitFullscreen){
-            document.msExitFullscreen();
-        }
+        if(document.exitFullscreen){document.exitFullscreen().catch(()=>{});}
+        else if(document.webkitExitFullscreen){document.webkitExitFullscreen();}
+        else if(document.mozCancelFullScreen){document.mozCancelFullScreen();}
+        else if(document.msExitFullscreen){document.msExitFullscreen();}
     }
 }
-
 function tryVideoFullscreen(){
     const video=document.getElementById('videoPlayer');
-    if(video.webkitEnterFullscreen){
-        // iOS Safari için video tam ekran
-        video.webkitEnterFullscreen();
-    }else if(video.requestFullscreen){
-        video.requestFullscreen().catch(()=>{});
-    }else if(video.webkitRequestFullscreen){
-        video.webkitRequestFullscreen();
-    }
+    if(video.webkitEnterFullscreen){video.webkitEnterFullscreen();}
+    else if(video.requestFullscreen){video.requestFullscreen().catch(()=>{});}
+    else if(video.webkitRequestFullscreen){video.webkitRequestFullscreen();}
 }
 
 function toggleSidebar(){sidebarVisible?hideSidebar():showSidebar();}
