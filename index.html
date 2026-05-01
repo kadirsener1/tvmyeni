@@ -363,11 +363,11 @@ function playChannel(fi){
     if(isHLS&&Hls.isSupported()){
         hlsInstance=new Hls({
             // === OPTİMAL AKICILIK ===
-            maxBufferLength:20,          // Küçük buffer = az GC
-            maxMaxBufferLength:40,
+            maxBufferLength:15,          // Küçük buffer = az GC
+            maxMaxBufferLength:30,
             maxBufferSize:30*1000*1000,   // 30MB
             maxBufferHole:0.5,
-            backBufferLength:10,          // Minimum geri buffer
+            backBufferLength:8,          // Minimum geri buffer
 
             manifestLoadingTimeOut:12000,
             manifestLoadingMaxRetry:3,
@@ -379,7 +379,7 @@ function playChannel(fi){
             fragLoadingRetryDelay:500,
 
             enableWorker:true,
-            lowLatencyMode:false,
+            lowLatencyMode:true,
             startFragPrefetch:true,
             progressive:true,
             testBandwidth:true,
@@ -418,7 +418,7 @@ function playChannel(fi){
     video.onerror=()=>{document.getElementById('bufferingSpinner').style.display='none';currentPlayingUrl='';if(stallChecker){clearInterval(stallChecker);stallChecker=null;}if(resolutionChecker){clearInterval(resolutionChecker);resolutionChecker=null;}showToast('❌','Bu kanal oynatılamıyor');};
 
     let lastT=-1,sc=0;
-    stallChecker=setInterval(()=>{if(video.paused||video.ended||!isPlaying)return;if(video.currentTime===lastT&&video.readyState>=2){sc++;if(sc>=2){const b=video.buffered;if(b.length>0&&b.end(b.length-1)>video.currentTime+0.5)video.currentTime+=0.15;sc=0;}}else sc=0;lastT=video.currentTime;},3000);
+    stallChecker=setInterval(()=>{if(video.paused||video.ended||!isPlaying)return;if(video.currentTime===lastT&&video.readyState>=2){sc++;if(sc>=2){const b=video.buffered;if(b.length>0&&b.end(b.length-1)>video.currentTime+0.5)video.currentTime+=0.1;sc=0;}}else sc=0;lastT=video.currentTime;},3000);
 
     startResMonitor();document.getElementById('nowPlayingText').textContent=ch.name;
     showChannelInfoBar(ch);forceRebuildList();
