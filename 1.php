@@ -7,7 +7,7 @@
 
 </head><body>
 <video id="hls-example" class="video-js vjs-default-skin" controls preload="auto">
-<source type="application/x-mpegURL" src="https://m.youtube.com/watch?v=BJHMKOIHVN0&ra=m">
+<source type="application/x-mpegURL" src="http://sbiptvpro.xyz:80/kadirsener1/Nf9HUKWhdrEuacCm/99978">
 </video>
 </body>
 <script src="https://livetv.work/play/iframe-css/video.js"></script> 
