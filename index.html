@@ -347,7 +347,7 @@ function parseM3U(t){
 
 function extractCategories(){
     const s=new Set();channels.forEach(c=>{if(c.group)s.add(c.group);});
-    categories=Array.from(s).sort((a,b)=>a.localeCompare(b,'tr'));
+    categories=Array.from(s);
     allCategoryNames=['all',...categories];
     renderCatList();
 }
@@ -599,11 +599,24 @@ function handleKeydown(e){
             break;
 
         // Kanal +/- (ChannelUp / ChannelDown) — kumandadaki CH+/CH- tuşları
-        case'ChannelUp':e.preventDefault();
-            if(focusMode==='none'&&currentChannelIndex>=0)playNextChannel();
+    case'ArrowUp':e.preventDefault();
+            if(focusMode==='channels'){
+                if(focusedChannelIndex>0){focusedChannelIndex--;updateFocusUI();}
+            }else if(focusMode==='categories'){
+                if(focusedCategoryIndex>0){focusedCategoryIndex--;renderCatList();}
+            }else{
+                if(currentChannelIndex>=0)playNextChannel();
+            }
             break;
-        case'ChannelDown':e.preventDefault();
-            if(focusMode==='none'&&currentChannelIndex>=0)playPrevChannel();
+
+        case'ArrowDown':e.preventDefault();
+            if(focusMode==='channels'){
+                if(focusedChannelIndex<filteredChannels.length-1){focusedChannelIndex++;updateFocusUI();}
+            }else if(focusMode==='categories'){
+                if(focusedCategoryIndex<allCategoryNames.length-1){focusedCategoryIndex++;renderCatList();}
+            }else{
+                if(currentChannelIndex>=0)playPrevChannel();
+            }
             break;
 
         // PageUp/PageDown da kanal +/- olarak çalışsın (PC kumanda emulatörleri)
