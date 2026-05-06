@@ -256,7 +256,7 @@
                 <div class="welcome-keys">
                     <div class="key-hint"><span class="key-badge">OK</span> Kanal listesi</div>
                     <div class="key-hint"><span class="key-badge">◄</span> Kategoriler</div>
-                    <div class="key-hint"><span class="key-badge">▲▼</span> Listede gezin</div>
+                    <div class="key-hint"><span class="key-badge">▲▼</span> Kanal değiştir</div>
                     <div class="key-hint"><span class="key-badge">CH+/-</span> Kanal değiştir</div>
                     <div class="key-hint"><span class="key-badge">0-9</span> Kanal no</div>
                 </div>
@@ -322,7 +322,6 @@ document.addEventListener('DOMContentLoaded',async()=>{
     await loadM3U(M3U_URL);
     setTimeout(()=>{
         document.getElementById('loadingScreen').classList.add('hide');
-        // Site açıldığında kategori listesi açık gelsin
         showCategorySidebar();
     },2000);
     setupEventListeners();setupMouseEvents();setupTouchGestures();
@@ -584,27 +583,6 @@ function handleKeydown(e){
             }else if(focusMode==='categories'){
                 if(focusedCategoryIndex>0){focusedCategoryIndex--;renderCatList();}
             }else{
-                // Liste kapalı, kanal değiştirme yok (bunun için CH+/- var)
-            }
-            break;
-
-        case'ArrowDown':e.preventDefault();
-            if(focusMode==='channels'){
-                if(focusedChannelIndex<filteredChannels.length-1){focusedChannelIndex++;updateFocusUI();}
-            }else if(focusMode==='categories'){
-                if(focusedCategoryIndex<allCategoryNames.length-1){focusedCategoryIndex++;renderCatList();}
-            }else{
-                // Liste kapalı
-            }
-            break;
-
-        // Kanal +/- (ChannelUp / ChannelDown) — kumandadaki CH+/CH- tuşları
-    case'ArrowUp':e.preventDefault();
-            if(focusMode==='channels'){
-                if(focusedChannelIndex>0){focusedChannelIndex--;updateFocusUI();}
-            }else if(focusMode==='categories'){
-                if(focusedCategoryIndex>0){focusedCategoryIndex--;renderCatList();}
-            }else{
                 if(currentChannelIndex>=0)playNextChannel();
             }
             break;
@@ -619,7 +597,13 @@ function handleKeydown(e){
             }
             break;
 
-        // PageUp/PageDown da kanal +/- olarak çalışsın (PC kumanda emulatörleri)
+        case'ChannelUp':e.preventDefault();
+            if(currentChannelIndex>=0)playNextChannel();
+            break;
+        case'ChannelDown':e.preventDefault();
+            if(currentChannelIndex>=0)playPrevChannel();
+            break;
+
         case'PageUp':e.preventDefault();
             if(currentChannelIndex>=0)playNextChannel();
             break;
