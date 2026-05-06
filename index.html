@@ -18,7 +18,6 @@
         @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
         #app{display:flex;height:100vh;width:100vw;position:relative}
 
-        /* Kategori Sidebar */
         #categorySidebar{position:fixed;left:0;top:0;width:220px;height:100vh;background:var(--bg-sidebar);backdrop-filter:blur(20px);z-index:1001;display:flex;flex-direction:column;transition:transform .35s cubic-bezier(.4,0,.2,1),opacity .35s;border-right:1px solid var(--border);box-shadow:5px 0 30px rgba(0,0,0,.5)}
         #categorySidebar.hidden{transform:translateX(-100%);opacity:0}
         .cat-sidebar-header{padding:16px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;min-height:60px;background:rgba(108,92,231,.1);flex-shrink:0}
@@ -37,7 +36,6 @@
         .cat-item-count{font-size:10px;background:rgba(255,255,255,.1);padding:2px 8px;border-radius:10px;color:var(--text-dim);flex-shrink:0;margin-left:8px}
         .cat-item.active .cat-item-count{background:rgba(255,255,255,.2);color:#fff}
 
-        /* Kanal Sidebar */
         #sidebar{position:fixed;left:0;top:0;width:380px;height:100vh;background:var(--bg-sidebar);backdrop-filter:blur(20px);z-index:1000;display:flex;flex-direction:column;transition:transform .35s cubic-bezier(.4,0,.2,1),opacity .35s;border-right:1px solid var(--border);box-shadow:5px 0 30px rgba(0,0,0,.5)}
         #sidebar.hidden{transform:translateX(-100%);opacity:0}
         #sidebar.overlay-mode{background:var(--bg-sidebar-transparent)}
@@ -224,7 +222,6 @@
 <div id="toast"><div class="toast-content" id="toastContent"></div></div>
 <button id="mobileMenuBtn" onclick="toggleSidebar()">☰</button>
 <div id="app">
-    <!-- Kategori Sidebar -->
     <div id="categorySidebar" class="hidden">
         <div class="cat-sidebar-header">
             <div class="logo"><span>📂</span> Kategoriler</div>
@@ -233,7 +230,6 @@
         <div class="cat-list" id="catList"></div>
     </div>
 
-    <!-- Kanal Sidebar -->
     <div id="sidebar" class="hidden">
         <div class="sidebar-header">
             <div class="logo"><span>📺</span> TiViM</div>
@@ -260,7 +256,8 @@
                 <div class="welcome-keys">
                     <div class="key-hint"><span class="key-badge">OK</span> Kanal listesi</div>
                     <div class="key-hint"><span class="key-badge">◄</span> Kategoriler</div>
-                    <div class="key-hint"><span class="key-badge">▲▼</span> Kanal değiştir</div>
+                    <div class="key-hint"><span class="key-badge">▲▼</span> Listede gezin</div>
+                    <div class="key-hint"><span class="key-badge">CH+/-</span> Kanal değiştir</div>
                     <div class="key-hint"><span class="key-badge">0-9</span> Kanal no</div>
                 </div>
             </div>
@@ -308,13 +305,12 @@ const M3U_URL='https://raw.githubusercontent.com/kadirsener1/tivim/refs/heads/ma
 const AUTO_REFRESH=30*60*1000;
 let channels=[],filteredChannels=[],categories=[],allCategoryNames=[];
 let currentCategory='all',currentChannelIndex=-1,focusedChannelIndex=0;
-let sidebarVisible=false,catSidebarVisible=false,sidebarOverlayMode=false,isPlaying=false;
+let sidebarVisible=false,catSidebarVisible=false,isPlaying=false;
 let hlsInstance=null,controlsTimeout=null,overlayTimeout=null;
 let numberBuffer='',numberTimeout=null;
 let focusedCategoryIndex=0;
 let currentResolution='',stallChecker=null,resolutionChecker=null;
 let currentPlayingUrl='';
-// focus: 'none','channels','categories'
 let focusMode='none';
 
 function showBg(){var b=document.getElementById('videoBg');b.classList.remove('playing');b.style.opacity='1';}
@@ -324,7 +320,11 @@ document.addEventListener('DOMContentLoaded',async()=>{
     var img=new Image();
     img.src='https://raw.githubusercontent.com/kadirsener1/tvmyeni/refs/heads/main/bg.JPG';
     await loadM3U(M3U_URL);
-    setTimeout(()=>document.getElementById('loadingScreen').classList.add('hide'),2000);
+    setTimeout(()=>{
+        document.getElementById('loadingScreen').classList.add('hide');
+        // Site açıldığında kategori listesi açık gelsin
+        showCategorySidebar();
+    },2000);
     setupEventListeners();setupMouseEvents();setupTouchGestures();
     setInterval(async()=>{const pi=currentChannelIndex;await loadM3U(M3U_URL);if(pi>=0&&pi<channels.length)currentChannelIndex=pi;},AUTO_REFRESH);
 });
@@ -355,7 +355,6 @@ function extractCategories(){
 function renderCatList(){
     const container=document.getElementById('catList');
     let h='';
-    // Tümü
     h+=`<div class="cat-item${currentCategory==='all'?' active':''}${focusMode==='categories'&&focusedCategoryIndex===0?' focused':''}" data-catidx="0" onclick="selectCategoryFromList('all')">
         <span class="cat-item-name">📺 Tümü</span>
         <span class="cat-item-count">${channels.length}</span>
@@ -369,7 +368,6 @@ function renderCatList(){
         </div>`;
     });
     container.innerHTML=h;
-    // Scroll focused into view
     if(focusMode==='categories'){
         const focused=container.querySelector('.cat-item.focused');
         if(focused)focused.scrollIntoView({behavior:'smooth',block:'nearest'});
@@ -384,7 +382,6 @@ function selectCategoryFromList(cat){
     focusedChannelIndex=0;
     updateCatLabel();
     renderCatList();
-    // Kategori seçilince kanal listesini göster, kategori listesini kapat
     hideCategorySidebar();
     showSidebar();
     forceRebuildList();
@@ -395,14 +392,6 @@ function updateCatLabel(){
     const label=document.getElementById('sidebarCatLabel');
     const name=currentCategory==='all'?'Tümü':currentCategory;
     label.innerHTML=`📂 ${name} <span class="back-hint">◄ Kategoriler</span>`;
-}
-
-function selectCategory(cat){
-    currentCategory=cat;
-    focusedCategoryIndex=allCategoryNames.indexOf(cat);
-    if(focusedCategoryIndex===-1)focusedCategoryIndex=0;
-    filterChannels();focusedChannelIndex=0;
-    updateCatLabel();renderCatList();forceRebuildList();
 }
 
 function filterChannels(){filteredChannels=channels.filter(c=>currentCategory==='all'||c.group===currentCategory);document.getElementById('channelCount').textContent=`${filteredChannels.length} kanal`;}
@@ -428,7 +417,6 @@ function getResLabel(w,h){if(h>=2160||w>=3840)return'4K UHD';if(h>=1440||w>=2560
 function updateResDisplay(txt){currentResolution=txt;const el=document.getElementById('infoBarRes'),et=document.getElementById('infoBarResText');if(txt){et.textContent=txt;el.style.display='flex';}else{el.style.display='none';}document.getElementById('nowPlayingRes').textContent=txt?`• ${txt}`:'';}
 function startResMonitor(){if(resolutionChecker)clearInterval(resolutionChecker);const v=document.getElementById('videoPlayer');currentResolution='';updateResDisplay('');resolutionChecker=setInterval(()=>{if(v.videoWidth>0&&v.videoHeight>0){const w=v.videoWidth,h=v.videoHeight,l=getResLabel(w,h),nr=`${w}×${h} ${l}`;if(nr!==currentResolution)updateResDisplay(nr);}},2000);}
 
-// === Sidebar kontrolleri ===
 function showSidebar(){
     const s=document.getElementById('sidebar');
     s.classList.remove('hidden');
@@ -462,7 +450,7 @@ function hideAllSidebars(){
 }
 function toggleSidebar(){
     if(sidebarVisible||catSidebarVisible){hideAllSidebars();}
-    else{showSidebar();}
+    else{showCategorySidebar();}
 }
 
 function playChannel(fi){
@@ -512,7 +500,6 @@ function playChannel(fi){
 
     startResMonitor();document.getElementById('nowPlayingText').textContent=ch.name;
     showChannelInfoBar(ch);forceRebuildList();
-    // Kanal seçilince sidebar kapat
     setTimeout(()=>hideAllSidebars(),400);
     showToast('▶️',ch.name);
 }
@@ -558,7 +545,7 @@ function showControls(){const c=document.getElementById('playerControls');c.clas
 function setupTouchGestures(){
     let sx=0,sy=0,st=0;const pl=document.getElementById('playerArea');
     pl.addEventListener('touchstart',(e)=>{if(e.target.closest('#playerControls')||e.target.closest('#channelInfoBar'))return;sx=e.touches[0].clientX;sy=e.touches[0].clientY;st=Date.now();},{passive:true});
-    pl.addEventListener('touchend',(e)=>{if(e.target.closest('#playerControls')||e.target.closest('#channelInfoBar'))return;const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;if(Date.now()-st<500&&Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)){if(dx>0&&!sidebarVisible&&!catSidebarVisible){showSidebar();}else if(dx<0&&(sidebarVisible||catSidebarVisible))hideAllSidebars();}},{passive:true});
+    pl.addEventListener('touchend',(e)=>{if(e.target.closest('#playerControls')||e.target.closest('#channelInfoBar'))return;const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;if(Date.now()-st<500&&Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)){if(dx>0&&!sidebarVisible&&!catSidebarVisible){showCategorySidebar();}else if(dx<0&&(sidebarVisible||catSidebarVisible))hideAllSidebars();}},{passive:true});
     const sb=document.getElementById('sidebar');let sbx=0;
     sb.addEventListener('touchstart',(e)=>{sbx=e.touches[0].clientX;},{passive:true});
     sb.addEventListener('touchend',(e)=>{if(e.changedTouches[0].clientX-sbx<-60)hideSidebar();},{passive:true});
@@ -574,24 +561,19 @@ function handleKeydown(e){
     switch(e.key){
         case'ArrowLeft':e.preventDefault();
             if(focusMode==='channels'){
-                // Kanal listesinden kategori listesine geç
                 showCategorySidebar();
             }else if(focusMode==='categories'){
-                // Zaten kategorideyiz, kapat
                 hideCategorySidebar();
             }else{
-                // Hiçbiri açık değil, kategori listesini aç
                 showCategorySidebar();
             }
             break;
 
         case'ArrowRight':e.preventDefault();
             if(focusMode==='categories'){
-                // Kategoriden kanal listesine geç
                 hideCategorySidebar();
                 showSidebar();
             }else if(focusMode==='channels'){
-                // Kanal listesini kapat
                 hideSidebar();
             }
             break;
@@ -602,7 +584,7 @@ function handleKeydown(e){
             }else if(focusMode==='categories'){
                 if(focusedCategoryIndex>0){focusedCategoryIndex--;renderCatList();}
             }else{
-                if(currentChannelIndex>=0)playNextChannel();
+                // Liste kapalı, kanal değiştirme yok (bunun için CH+/- var)
             }
             break;
 
@@ -612,20 +594,33 @@ function handleKeydown(e){
             }else if(focusMode==='categories'){
                 if(focusedCategoryIndex<allCategoryNames.length-1){focusedCategoryIndex++;renderCatList();}
             }else{
-                if(currentChannelIndex>=0)playPrevChannel();
+                // Liste kapalı
             }
+            break;
+
+        // Kanal +/- (ChannelUp / ChannelDown) — kumandadaki CH+/CH- tuşları
+        case'ChannelUp':e.preventDefault();
+            if(focusMode==='none'&&currentChannelIndex>=0)playNextChannel();
+            break;
+        case'ChannelDown':e.preventDefault();
+            if(focusMode==='none'&&currentChannelIndex>=0)playPrevChannel();
+            break;
+
+        // PageUp/PageDown da kanal +/- olarak çalışsın (PC kumanda emulatörleri)
+        case'PageUp':e.preventDefault();
+            if(currentChannelIndex>=0)playNextChannel();
+            break;
+        case'PageDown':e.preventDefault();
+            if(currentChannelIndex>=0)playPrevChannel();
             break;
 
         case'Enter':e.preventDefault();
             if(focusMode==='categories'){
-                // Kategori seç
                 const cn=allCategoryNames[focusedCategoryIndex];
                 selectCategoryFromList(cn);
             }else if(focusMode==='channels'){
-                // Kanal seç
                 if(filteredChannels.length>0)playChannel(focusedChannelIndex);
             }else{
-                // Hiçbiri açık değil, kanal listesini aç (OK tuşu)
                 showSidebar();
             }
             break;
@@ -641,8 +636,6 @@ function handleKeydown(e){
         case's':case'S':e.preventDefault();toggleSidebar();break;
         case'+':case'=':e.preventDefault();adjustVolume(5);break;
         case'-':case'_':e.preventDefault();adjustVolume(-5);break;
-        case'PageUp':e.preventDefault();playNextChannel();break;
-        case'PageDown':e.preventDefault();playPrevChannel();break;
         default:if(e.key>='0'&&e.key<='9'){e.preventDefault();handleNumberInput(e.key);}break;
     }
 }
