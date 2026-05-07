@@ -558,13 +558,13 @@ function handleKeydown(e){
     const ae=document.activeElement;if(ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'||ae.tagName==='SELECT')){if(e.key==='Escape'){ae.blur();e.preventDefault();}return;}
 
     switch(e.key){
-        case'ArrowLeft':e.preventDefault();
+               case'ArrowLeft':e.preventDefault();
             if(focusMode==='channels'){
                 showCategorySidebar();
             }else if(focusMode==='categories'){
                 hideCategorySidebar();
             }else{
-                showCategorySidebar();
+                showSidebar();
             }
             break;
 
