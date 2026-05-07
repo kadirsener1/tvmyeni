@@ -543,10 +543,7 @@ function setupMouseEvents(){const p=document.getElementById('playerArea');p.addE
 function showControls(){const c=document.getElementById('playerControls');c.classList.add('visible');clearTimeout(controlsTimeout);controlsTimeout=setTimeout(()=>c.classList.remove('visible'),4000);}
 function setupTouchGestures(){
     let sx=0,sy=0,st=0;const pl=document.getElementById('playerArea');
-    pl.addEventListener('touchstart',(e)=>{if(e.target.closest('#playerControls')||e.target.closest('#channelInfoBar'))return;sx=e.touches[0].clientX;sy=e.touches[0].clientY;st=Date.now();},{passive:true});
-    pl.addEventListener('touchend',(e)=>{if(e.target.closest('#playerControls')||e.target.closest('#channelInfoBar'))return;const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;if(Date.now()-st<500&&Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)){if(dx>0&&!sidebarVisible&&!catSidebarVisible){showCategorySidebar();}else if(dx<0&&(sidebarVisible||catSidebarVisible))hideAllSidebars();}},{passive:true});
-    const sb=document.getElementById('sidebar');let sbx=0;
-    sb.addEventListener('touchstart',(e)=>{sbx=e.touches[0].clientX;},{passive:true});
+        pl.addEventListener('touchend',(e)=>{if(e.target.closest('#playerControls')||e.target.closest('#channelInfoBar'))return;const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;if(Date.now()-st<500&&Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)){if(dx>0&&!sidebarVisible&&!catSidebarVisible){showSidebar();}else if(dx<0&&(sidebarVisible||catSidebarVisible))hideAllSidebars();}},{passive:true});
     sb.addEventListener('touchend',(e)=>{if(e.changedTouches[0].clientX-sbx<-60)hideSidebar();},{passive:true});
     const csb=document.getElementById('categorySidebar');let csbx=0;
     csb.addEventListener('touchstart',(e)=>{csbx=e.touches[0].clientX;},{passive:true});
