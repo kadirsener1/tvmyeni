@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>📺 TiViM - IPTV Player</title>
+    <title>📺 TiViM - IPTV</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
         :root{--primary:#6c5ce7;--primary-dark:#5a4bd1;--bg-dark:#0a0a1a;--bg-card:#141428;--bg-sidebar:rgba(10,10,26,0.95);--bg-sidebar-transparent:rgba(10,10,26,0.75);--text:#e0e0e0;--text-dim:#8888aa;--accent:#00cec9;--danger:#ff6b6b;--success:#00b894;--border:rgba(108,92,231,0.3);--glow:rgba(108,92,231,0.5)}
@@ -337,40 +337,10 @@ async function loadM3U(url){
 }
 
 function parseM3U(t){
-    const lines=t.split('\n'),p=[];
-    let c=null,headers={};
-    for(let i=0;i<lines.length;i++){
-        const l=lines[i].trim();
-        if(l.startsWith('#EXTVLCOPT:')){
-            const opt=l.substring(11).trim();
-            if(opt.toLowerCase().startsWith('http-user-agent=')){
-                headers.userAgent=opt.substring(16).trim();
-            }else if(opt.toLowerCase().startsWith('http-referrer=')){
-                headers.referrer=opt.substring(14).trim();
-            }else if(opt.toLowerCase().startsWith('http-referer=')){
-                headers.referrer=opt.substring(13).trim();
-            }
-        }
-        else if(l.startsWith('#EXTINF:')){
-            c={};
-            const nm=l.match(/tvg-name="([^"]*)"/),lg=l.match(/tvg-logo="([^"]*)"/),gr=l.match(/group-title="([^"]*)"/),tl=l.match(/,(.+)$/);
-            c.name=nm?nm[1]:(tl?tl[1].trim():'Bilinmeyen');
-            c.logo=lg?lg[1]:'';
-            c.group=gr?gr[1]:'Diğer';
-            if(!c.name&&tl)c.name=tl[1].trim();
-            // EXTVLCOPT önce geldiyse header'ları aktar
-            if(headers.userAgent)c.userAgent=headers.userAgent;
-            if(headers.referrer)c.referrer=headers.referrer;
-        }
-        else if(l&&!l.startsWith('#')&&c){
-            c.url=l;
-            // EXTVLCOPT sonra geldiyse de header'ları aktar
-            if(headers.userAgent&&!c.userAgent)c.userAgent=headers.userAgent;
-            if(headers.referrer&&!c.referrer)c.referrer=headers.referrer;
-            if(c.name&&c.url)p.push(c);
-            c=null;headers={};
-        }
-    }
+    const lines=t.split('\n'),p=[];let c=null;
+    for(let i=0;i<lines.length;i++){const l=lines[i].trim();
+        if(l.startsWith('#EXTINF:')){c={};const nm=l.match(/tvg-name="([^"]*)"/),lg=l.match(/tvg-logo="([^"]*)"/),gr=l.match(/group-title="([^"]*)"/),tl=l.match(/,(.+)$/);c.name=nm?nm[1]:(tl?tl[1].trim():'Bilinmeyen');c.logo=lg?lg[1]:'';c.group=gr?gr[1]:'Diğer';if(!c.name&&tl)c.name=tl[1].trim();}
+        else if(l&&!l.startsWith('#')&&c){c.url=l;if(c.name&&c.url)p.push(c);c=null;}}
     return p;
 }
 
@@ -482,12 +452,6 @@ function toggleSidebar(){
     else{showCategorySidebar();}
 }
 
-function buildProxyUrl(url,ua,ref){
-    // CORS proxy ile header gönderme
-    let proxyBase='https://api.allorigins.win/raw?url=';
-    return proxyBase+encodeURIComponent(url);
-}
-
 function playChannel(fi){
     const ch=filteredChannels[fi];if(!ch)return;
 
@@ -503,12 +467,10 @@ function playChannel(fi){
     video.removeAttribute('src');video.load();updateResDisplay('');
     document.getElementById('welcomeScreen').style.display='none';document.getElementById('bufferingSpinner').style.display='block';
     showBg();
-
-    const hasCustomHeaders=!!(ch.userAgent||ch.referrer);
     const isHLS=/\.m3u8/i.test(url)||/m3u8/i.test(url);
 
     if(isHLS&&Hls.isSupported()){
-        const hlsConfig={
+        hlsInstance=new Hls({
             maxBufferLength:30,maxMaxBufferLength:60,maxBufferSize:60*1000*1000,maxBufferHole:0.3,backBufferLength:15,
             manifestLoadingTimeOut:15000,manifestLoadingMaxRetry:4,manifestLoadingRetryDelay:500,
             levelLoadingTimeOut:15000,levelLoadingMaxRetry:4,
@@ -519,68 +481,13 @@ function playChannel(fi){
             nudgeOffset:0.05,nudgeMaxRetry:10,startPosition:-1,
             stretchShortVideoTrack:true,forceKeyFrameOnDiscontinuity:true,appendErrorMaxRetry:5,
             capLevelToPlayerSize:false,highBufferWatchdogPeriod:1,
-        };
-
-        if(hasCustomHeaders){
-            hlsConfig.xhrSetup=function(xhr,reqUrl){
-                if(ch.userAgent){
-                    try{xhr.setRequestHeader('User-Agent',ch.userAgent);}catch(e){}
-                }
-                if(ch.referrer){
-                    try{xhr.setRequestHeader('Referer',ch.referrer);}catch(e){}
-                }
-            };
-        }
-
-        hlsInstance=new Hls(hlsConfig);
-        hlsInstance.loadSource(url);
-        hlsInstance.attachMedia(video);
+        });
+        hlsInstance.loadSource(url);hlsInstance.attachMedia(video);
         hlsInstance.on(Hls.Events.MANIFEST_PARSED,()=>{video.play().catch(()=>{});});
         hlsInstance.on(Hls.Events.FRAG_BUFFERED,()=>{document.getElementById('bufferingSpinner').style.display='none';});
-        hlsInstance.on(Hls.Events.ERROR,(e,d)=>{
-            if(d.fatal){
-                // İlk denemede CORS hatası olabilir, proxy ile tekrar dene
-                if(d.type===Hls.ErrorTypes.NETWORK_ERROR){
-                    if(hasCustomHeaders&&!hlsInstance._proxyRetried){
-                        hlsInstance._proxyRetried=true;
-                        showToast('🔄','Alternatif bağlantı deneniyor...');
-                        // Proxy üzerinden tekrar dene
-                        hlsInstance.destroy();
-                        const hlsConfig2=Object.assign({},hlsConfig);
-                        delete hlsConfig2.xhrSetup; // proxy kullanacağız
-                        hlsInstance=new Hls(hlsConfig2);
-                        hlsInstance.loadSource(buildProxyUrl(url,ch.userAgent,ch.referrer));
-                        hlsInstance.attachMedia(video);
-                        hlsInstance.on(Hls.Events.MANIFEST_PARSED,()=>{video.play().catch(()=>{});});
-                        hlsInstance.on(Hls.Events.FRAG_BUFFERED,()=>{document.getElementById('bufferingSpinner').style.display='none';});
-                        hlsInstance.on(Hls.Events.ERROR,(e2,d2)=>{
-                            if(d2.fatal){
-                                showToast('❌','Kanal yüklenemedi');
-                                document.getElementById('bufferingSpinner').style.display='none';
-                                showBg();
-                            }
-                        });
-                    }else{
-                        showToast('🔄','Bağlantı sorunu...');
-                        setTimeout(()=>{if(hlsInstance)hlsInstance.startLoad();},1500);
-                    }
-                }else if(d.type===Hls.ErrorTypes.MEDIA_ERROR){
-                    hlsInstance.recoverMediaError();
-                }else{
-                    showToast('❌','Kanal yüklenemedi');
-                    document.getElementById('bufferingSpinner').style.display='none';
-                    showBg();
-                }
-            }
-            if(d.details==='bufferStalledError'&&video.currentTime>0)video.currentTime+=0.1;
-        });
-    }else if(video.canPlayType('application/vnd.apple.mpegurl')&&isHLS){
-        video.src=url;
-        video.play().catch(()=>{});
-    }else{
-        video.src=url;
-        video.play().catch(()=>{});
-    }
+        hlsInstance.on(Hls.Events.ERROR,(e,d)=>{if(d.fatal){if(d.type===Hls.ErrorTypes.NETWORK_ERROR){showToast('🔄','Bağlantı sorunu...');setTimeout(()=>{if(hlsInstance)hlsInstance.startLoad();},1500);}else if(d.type===Hls.ErrorTypes.MEDIA_ERROR){hlsInstance.recoverMediaError();}else{showToast('❌','Kanal yüklenemedi');document.getElementById('bufferingSpinner').style.display='none';showBg();}}if(d.details==='bufferStalledError'&&video.currentTime>0)video.currentTime+=0.1;});
+    }else if(video.canPlayType('application/vnd.apple.mpegurl')&&isHLS){video.src=url;video.play().catch(()=>{});}
+    else{video.src=url;video.play().catch(()=>{});}
 
     video.onplaying=()=>{document.getElementById('bufferingSpinner').style.display='none';isPlaying=true;document.getElementById('playPauseBtn').textContent='⏸';hideBg();};
     video.onwaiting=()=>{document.getElementById('bufferingSpinner').style.display='block';};
