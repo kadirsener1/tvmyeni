@@ -337,10 +337,32 @@ async function loadM3U(url){
 }
 
 function parseM3U(t){
-    const lines=t.split('\n'),p=[];let c=null;
+    const lines=t.split('\n'),p=[];let c=null,pendingHeaders={};
     for(let i=0;i<lines.length;i++){const l=lines[i].trim();
-        if(l.startsWith('#EXTINF:')){c={};const nm=l.match(/tvg-name="([^"]*)"/),lg=l.match(/tvg-logo="([^"]*)"/),gr=l.match(/group-title="([^"]*)"/),tl=l.match(/,(.+)$/);c.name=nm?nm[1]:(tl?tl[1].trim():'Bilinmeyen');c.logo=lg?lg[1]:'';c.group=gr?gr[1]:'Diğer';if(!c.name&&tl)c.name=tl[1].trim();}
-        else if(l&&!l.startsWith('#')&&c){c.url=l;if(c.name&&c.url)p.push(c);c=null;}}
+        if(l.startsWith('#EXTINF:')){
+            c={};pendingHeaders={};
+            const nm=l.match(/tvg-name="([^"]*)"/),lg=l.match(/tvg-logo="([^"]*)"/),gr=l.match(/group-title="([^"]*)"/),tl=l.match(/,(.+)$/);
+            c.name=nm?nm[1]:(tl?tl[1].trim():'Bilinmeyen');c.logo=lg?lg[1]:'';c.group=gr?gr[1]:'Diğer';
+            if(!c.name&&tl)c.name=tl[1].trim();
+        }
+        else if(l.startsWith('#EXTVLCOPT:')){
+            const opt=l.substring(11);
+            if(opt.startsWith('http-user-agent=')){
+                pendingHeaders.userAgent=opt.substring(16);
+            }else if(opt.startsWith('http-referrer=')){
+                pendingHeaders.referrer=opt.substring(14);
+            }else if(opt.startsWith('http-referer=')){
+                pendingHeaders.referrer=opt.substring(13);
+            }
+        }
+        else if(l&&!l.startsWith('#')&&c){
+            c.url=l;
+            if(pendingHeaders.userAgent)c.userAgent=pendingHeaders.userAgent;
+            if(pendingHeaders.referrer)c.referrer=pendingHeaders.referrer;
+            if(c.name&&c.url)p.push(c);
+            c=null;pendingHeaders={};
+        }
+    }
     return p;
 }
 
@@ -467,10 +489,17 @@ function playChannel(fi){
     video.removeAttribute('src');video.load();updateResDisplay('');
     document.getElementById('welcomeScreen').style.display='none';document.getElementById('bufferingSpinner').style.display='block';
     showBg();
+
+    // Header'ları hazırla
+    const xhrSetup=function(xhr,reqUrl){
+        if(ch.referrer){try{xhr.setRequestHeader('Referer',ch.referrer);}catch(e){}}
+        if(ch.userAgent){try{xhr.setRequestHeader('User-Agent',ch.userAgent);}catch(e){}}
+    };
+
     const isHLS=/\.m3u8/i.test(url)||/m3u8/i.test(url);
 
     if(isHLS&&Hls.isSupported()){
-        hlsInstance=new Hls({
+        const hlsConfig={
             maxBufferLength:30,maxMaxBufferLength:60,maxBufferSize:60*1000*1000,maxBufferHole:0.3,backBufferLength:15,
             manifestLoadingTimeOut:15000,manifestLoadingMaxRetry:4,manifestLoadingRetryDelay:500,
             levelLoadingTimeOut:15000,levelLoadingMaxRetry:4,
@@ -481,7 +510,14 @@ function playChannel(fi){
             nudgeOffset:0.05,nudgeMaxRetry:10,startPosition:-1,
             stretchShortVideoTrack:true,forceKeyFrameOnDiscontinuity:true,appendErrorMaxRetry:5,
             capLevelToPlayerSize:false,highBufferWatchdogPeriod:1,
-        });
+        };
+
+        // user-agent veya referrer varsa xhrSetup ekle
+        if(ch.userAgent||ch.referrer){
+            hlsConfig.xhrSetup=xhrSetup;
+        }
+
+        hlsInstance=new Hls(hlsConfig);
         hlsInstance.loadSource(url);hlsInstance.attachMedia(video);
         hlsInstance.on(Hls.Events.MANIFEST_PARSED,()=>{video.play().catch(()=>{});});
         hlsInstance.on(Hls.Events.FRAG_BUFFERED,()=>{document.getElementById('bufferingSpinner').style.display='none';});
