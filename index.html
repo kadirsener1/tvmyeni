@@ -107,9 +107,6 @@
         .now-playing-text{font-size:14px;font-weight:600}
         .now-playing-res{font-size:11px;color:var(--accent);font-weight:600;margin-left:4px}
 
-        /* Error banner from xsukax player */
-        .error-banner{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);background:rgba(207,34,46,0.9);color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;display:none;box-shadow:0 4px 20px rgba(207,34,46,.4);z-index:150;backdrop-filter:blur(8px);border:1px solid rgba(255,107,107,.3);max-width:90%;text-align:center}
-
         #toast{position:fixed;top:30px;right:30px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px 20px;z-index:9999;display:none;animation:toastSlideDown .3s ease;box-shadow:0 10px 30px rgba(0,0,0,.3);max-width:300px}
         @keyframes toastSlideDown{from{transform:translateY(-20px);opacity:0}to{transform:translateY(0);opacity:1}}
         .toast-content{display:flex;align-items:center;gap:10px;font-size:14px}
@@ -121,6 +118,7 @@
         .number-hint{font-size:12px;color:var(--text-dim);margin-top:4px}
         #mobileMenuBtn{display:none;position:fixed;top:15px;left:15px;z-index:900;width:44px;height:44px;border-radius:12px;background:rgba(10,10,26,.9);border:1px solid var(--border);color:var(--text);font-size:20px;cursor:pointer;align-items:center;justify-content:center;backdrop-filter:blur(10px)}
 
+        /* Debug panel for Android troubleshooting */
         #debugPanel{position:fixed;bottom:10px;left:10px;background:rgba(0,0,0,.9);color:#0f0;font-family:monospace;font-size:10px;padding:8px;border-radius:6px;z-index:99999;max-width:300px;max-height:200px;overflow-y:auto;display:none;word-wrap:break-word;line-height:1.4}
         #debugPanel.visible{display:block}
 
@@ -143,6 +141,7 @@
             .channel-num{font-size:10px;padding:2px 6px}
             .channel-count{padding:6px 12px;font-size:11px}
             .sidebar-cat-label{padding:6px 12px;font-size:11px}
+
             #channelInfoBar{padding:20px 14px 16px 14px;bottom:0}
             .info-bar-content{flex-direction:column;align-items:flex-start;gap:6px}
             .info-bar-left{gap:10px;width:100%}
@@ -152,6 +151,7 @@
             .info-bar-right{width:100%;justify-content:flex-start;gap:8px}
             .info-bar-resolution{font-size:11px;padding:3px 10px}
             .info-bar-live{font-size:10px;padding:3px 8px}
+
             #playerControls{padding:12px 16px;flex-wrap:wrap;gap:8px}
             .controls-left{gap:8px}
             .controls-right{gap:8px}
@@ -210,6 +210,7 @@
             .ctrl-btn{min-width:44px;min-height:44px}
             .icon-btn{min-width:40px;min-height:40px}
         }
+
         @supports(padding-bottom:env(safe-area-inset-bottom)){
             #channelInfoBar{padding-bottom:calc(16px + env(safe-area-inset-bottom))}
             #playerControls{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
@@ -261,11 +262,7 @@
                     <div class="key-hint"><span class="key-badge">OK</span> Kanal listesi</div>
                     <div class="key-hint"><span class="key-badge">◄</span> Kategoriler</div>
                     <div class="key-hint"><span class="key-badge">▲▼</span> Kanal değiştir</div>
-                    <div class="key-hint"><span class="key-badge">Space</span> Oynat/Duraklat</div>
-                    <div class="key-hint"><span class="key-badge">F</span> Tam Ekran</div>
-                    <div class="key-hint"><span class="key-badge">M</span> Sessiz</div>
-                    <div class="key-hint"><span class="key-badge">P</span> PiP</div>
-                    <div class="key-hint"><span class="key-badge">←/→</span> 10s İleri/Geri</div>
+                    <div class="key-hint"><span class="key-badge">CH+/-</span> Kanal değiştir</div>
                     <div class="key-hint"><span class="key-badge">0-9</span> Kanal no</div>
                 </div>
             </div>
@@ -286,13 +283,12 @@
                 </div>
             </div>
             <div id="numberOverlay"><div class="number-display" id="numberDisplay"></div><div class="number-hint">Kanal numarası</div></div>
-            <div class="error-banner" id="errorBanner"></div>
             <div id="playerControls">
                 <div class="controls-left">
-                    <button class="ctrl-btn" onclick="playPrevChannel()" title="Önceki">⏮</button>
-                    <button class="ctrl-btn" id="playPauseBtn" onclick="togglePlayPause()" title="Oynat/Duraklat">⏸</button>
-                    <button class="ctrl-btn" onclick="playNextChannel()" title="Sonraki">⏭</button>
-                    <button class="ctrl-btn" id="muteBtn" onclick="toggleMute()" title="Sessiz (M)">🔊</button>
+                    <button class="ctrl-btn" onclick="playPrevChannel()">⏮</button>
+                    <button class="ctrl-btn" id="playPauseBtn" onclick="togglePlayPause()">⏸</button>
+                    <button class="ctrl-btn" onclick="playNextChannel()">⏭</button>
+                    <button class="ctrl-btn" id="muteBtn" onclick="toggleMute()">🔊</button>
                     <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="100" oninput="setVolume(this.value)">
                 </div>
                 <div class="now-playing-info">
@@ -301,9 +297,8 @@
                     <div class="now-playing-res" id="nowPlayingRes"></div>
                 </div>
                 <div class="controls-right">
-                    <button class="ctrl-btn" onclick="togglePiP()" title="PiP (P)">⧉</button>
-                    <button class="ctrl-btn" onclick="toggleSidebar()" title="Kanal Listesi">📋</button>
-                    <button class="ctrl-btn" onclick="toggleFullscreen()" title="Tam Ekran (F)">⛶</button>
+                    <button class="ctrl-btn" onclick="toggleSidebar()">📋</button>
+                    <button class="ctrl-btn" onclick="toggleFullscreen()">⛶</button>
                 </div>
             </div>
         </div>
@@ -312,7 +307,6 @@
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js"></script>
 <script>
 const M3U_URL='https://raw.githubusercontent.com/kadirsener1/logolar/refs/heads/master/playlist.m3u';
-const CORS_PROXY='https://corsproxy.io/?';
 const AUTO_REFRESH=30*60*1000;
 let channels=[],filteredChannels=[],categories=[],allCategoryNames=[];
 let currentCategory='all',currentChannelIndex=-1,focusedChannelIndex=0;
@@ -323,8 +317,10 @@ let focusedCategoryIndex=0;
 let currentResolution='',stallChecker=null,resolutionChecker=null;
 let currentPlayingUrl='';
 let focusMode='none';
-let errorBannerTimeout=null;
 
+// ==========================================
+// PLATFORM DETECTION
+// ==========================================
 const platformInfo = {
     isAndroid: /Android/i.test(navigator.userAgent),
     isAndroidWebView: /wv\)/.test(navigator.userAgent) || /Android.*Version\/\d/.test(navigator.userAgent),
@@ -338,6 +334,9 @@ const platformInfo = {
     hlsJsSupported: typeof Hls !== 'undefined' ? Hls.isSupported() : false
 };
 
+// ==========================================
+// DEBUG LOGGING
+// ==========================================
 let debugLines = [];
 function debugLog(msg) {
     const ts = new Date().toLocaleTimeString();
@@ -349,8 +348,10 @@ function debugLog(msg) {
     console.log('[SENTV]', msg);
 }
 
+// Triple-tap to toggle debug panel
 let debugTapCount = 0, debugTapTimer = null;
 document.addEventListener('click', function(e) {
+    // Only count taps in top-right corner
     if (e.clientX > window.innerWidth - 80 && e.clientY < 80) {
         debugTapCount++;
         clearTimeout(debugTapTimer);
@@ -364,24 +365,6 @@ document.addEventListener('click', function(e) {
 
 function showBg(){var b=document.getElementById('videoBg');b.classList.remove('playing');b.style.opacity='1';}
 function hideBg(){var b=document.getElementById('videoBg');b.classList.add('playing');b.style.opacity='0';}
-
-// ==========================================
-// ERROR BANNER (from xsukax player)
-// ==========================================
-function showStreamError(msg) {
-    const b = document.getElementById('errorBanner');
-    b.textContent = '⚠ ' + msg;
-    b.style.display = 'block';
-    clearTimeout(errorBannerTimeout);
-    errorBannerTimeout = setTimeout(() => { b.style.display = 'none'; }, 7000);
-    showToast('❌', msg);
-}
-
-function hideStreamError() {
-    const b = document.getElementById('errorBanner');
-    b.style.display = 'none';
-    clearTimeout(errorBannerTimeout);
-}
 
 document.addEventListener('DOMContentLoaded',async()=>{
     debugLog('Platform: ' + navigator.userAgent.substring(0, 80));
@@ -400,34 +383,8 @@ document.addEventListener('DOMContentLoaded',async()=>{
 });
 
 async function loadM3U(url){
-    try{
-        const r=await fetch(url);
-        if(!r.ok)throw new Error('HTTP '+r.status);
-        channels=parseM3U(await r.text());
-        debugLog('M3U loaded direct: '+channels.length+' ch');
-    }catch(e){
-        // CORS proxy fallback (from xsukax)
-        try{
-            debugLog('Direct fetch failed, trying CORS proxy...');
-            const r=await fetch(CORS_PROXY+encodeURIComponent(url));
-            if(!r.ok)throw new Error('Proxy HTTP '+r.status);
-            channels=parseM3U(await r.text());
-            debugLog('M3U loaded via CORS proxy: '+channels.length+' ch');
-        }catch(e2){
-            // Second fallback
-            try{
-                const r=await fetch('https://api.allorigins.win/raw?url='+encodeURIComponent(url));
-                channels=parseM3U(await r.text());
-                debugLog('M3U loaded allorigins proxy: '+channels.length+' ch');
-            }catch(e3){
-                channels=[];
-                showToast('❌','M3U yüklenemedi');
-                showStreamError('Playlist yüklenemedi: ' + e3.message);
-                debugLog('M3U FAIL: '+e3);
-                return;
-            }
-        }
-    }
+    try{const r=await fetch(url);if(!r.ok)throw 0;channels=parseM3U(await r.text());debugLog('M3U loaded direct: '+channels.length+' ch');}
+    catch(e){try{const r=await fetch('https://api.allorigins.win/raw?url='+encodeURIComponent(url));channels=parseM3U(await r.text());debugLog('M3U loaded proxy: '+channels.length+' ch');}catch(e2){channels=[];showToast('❌','M3U yüklenemedi');debugLog('M3U FAIL: '+e2);return;}}
     channels.forEach((c,i)=>{c.index=i;c.number=i+1;});
     extractCategories();filterChannels();forceRebuildList();
     showToast('✅',`${channels.length} kanal yüklendi`);
@@ -550,36 +507,68 @@ function toggleSidebar(){
 }
 
 // ==========================================
-// RESOLVE PROXY URL
+// RESOLVE PROXY URL - Pre-resolve redirect for Android
 // ==========================================
 async function resolveStreamUrl(url) {
+    // If the URL contains a proxy/resolve endpoint, pre-fetch to get final URL
+    // This helps Android WebView which may not follow redirects well for media
     if (url.includes('/resolve?') || url.includes('vavooproxy')) {
         debugLog('Pre-resolving proxy URL...');
         try {
+            // First try: fetch with redirect:follow to get final URL
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 10000);
-            const resp = await fetch(url, { method: 'GET', redirect: 'follow', signal: controller.signal, headers: { 'Accept': '*/*' } });
+            
+            const resp = await fetch(url, {
+                method: 'GET',
+                redirect: 'follow',
+                signal: controller.signal,
+                headers: {
+                    'Accept': '*/*'
+                }
+            });
             clearTimeout(timeout);
+            
             if (resp.ok || resp.status === 200) {
+                // Check if response itself is a redirect URL or a playlist
                 const contentType = resp.headers.get('content-type') || '';
-                const finalUrl = resp.url;
+                const finalUrl = resp.url; // The URL after redirects
+                
                 debugLog('Resolved URL: ' + finalUrl.substring(0, 80));
-                if (finalUrl !== url && finalUrl.length > 10) return finalUrl;
+                debugLog('Content-Type: ' + contentType);
+                
+                // If the final URL is different from original, use it
+                if (finalUrl !== url && finalUrl.length > 10) {
+                    return finalUrl;
+                }
+                
+                // If response is a URL text
                 const text = await resp.text();
-                if (text && text.trim().startsWith('http') && text.trim().indexOf('\n') === -1) return text.trim();
+                if (text && text.trim().startsWith('http') && text.trim().indexOf('\n') === -1) {
+                    debugLog('Got redirect URL from body: ' + text.trim().substring(0, 80));
+                    return text.trim();
+                }
+                
+                // If it's an m3u8 playlist content, create a blob URL
                 if (text && (text.includes('#EXTM3U') || text.includes('#EXT-X-'))) {
+                    debugLog('Got m3u8 playlist content, creating blob');
                     const blob = new Blob([text], { type: 'application/vnd.apple.mpegurl' });
                     return URL.createObjectURL(blob);
                 }
+                
                 return finalUrl;
+            } else {
+                debugLog('Resolve HTTP error: ' + resp.status);
             }
-        } catch(e) { debugLog('Resolve error: ' + e.message); }
+        } catch(e) {
+            debugLog('Resolve error: ' + e.message);
+        }
     }
     return url;
 }
 
 // ==========================================
-// ENHANCED PLAYER (xsukax player features merged)
+// MAIN PLAY FUNCTION - Android Compatible
 // ==========================================
 async function playChannel(fi){
     const ch=filteredChannels[fi];if(!ch)return;
@@ -597,17 +586,17 @@ async function playChannel(fi){
     debugLog('--- Playing: ' + ch.name);
     debugLog('Original URL: ' + url.substring(0, 80));
 
-    // Cleanup previous instance — enhanced teardown from xsukax
+    // Cleanup previous instance
     if(hlsInstance){hlsInstance.destroy();hlsInstance=null;}
     if(stallChecker){clearInterval(stallChecker);stallChecker=null;}
     if(resolutionChecker){clearInterval(resolutionChecker);resolutionChecker=null;}
 
+    // Remove all source attributes and event handlers
     video.pause();
     video.removeAttribute('src');
-    video.innerHTML = '';
+    video.innerHTML = ''; // Remove any <source> elements
     video.load();
     updateResDisplay('');
-    hideStreamError();
 
     document.getElementById('welcomeScreen').style.display='none';
     document.getElementById('bufferingSpinner').style.display='block';
@@ -622,25 +611,29 @@ async function playChannel(fi){
         url = ch.url;
     }
 
-    // Enhanced HLS detection (from xsukax: checks .m3u8 and /live/ patterns)
-    const isHLS = /\.m3u8(\?|$)/i.test(url) || /m3u8/i.test(url) || /\/live\//i.test(url) || url.includes('vavoo') || url.includes('/play/');
+    const isHLS = /\.m3u8/i.test(url) || /m3u8/i.test(url) || url.includes('vavoo') || url.includes('/play/');
 
     debugLog('isHLS=' + isHLS + ' HLS.js=' + platformInfo.hlsJsSupported + ' NativeHLS=' + platformInfo.hasNativeHLS);
 
-    // Strategy selection — enhanced with xsukax's smart detection
+    // Strategy selection for Android
     if (platformInfo.isAndroid && !platformInfo.hasMSE && platformInfo.hasNativeHLS) {
+        // Android WebView without MSE but with native HLS - use native
         debugLog('Strategy: Android native HLS');
         playNative(video, url, ch);
     } else if (platformInfo.isAndroid && platformInfo.isAndroidWebView && !platformInfo.hlsJsSupported) {
+        // Old Android WebView - try native
         debugLog('Strategy: Android WebView fallback native');
         playNative(video, url, ch);
     } else if (isHLS && platformInfo.hlsJsSupported) {
+        // HLS.js supported (most modern browsers including Android Chrome)
         debugLog('Strategy: HLS.js');
         playWithHlsJs(video, url, ch);
     } else if (isHLS && platformInfo.hasNativeHLS) {
-        debugLog('Strategy: Native HLS (Safari/iOS)');
+        // Native HLS (Safari, iOS, some Android)
+        debugLog('Strategy: Native HLS');
         playNative(video, url, ch);
     } else {
+        // Direct playback (mp4, etc)
         debugLog('Strategy: Direct');
         playNative(video, url, ch);
     }
@@ -653,11 +646,8 @@ async function playChannel(fi){
     showToast('▶️',ch.name);
 }
 
-// Enhanced HLS.js config merged from xsukax's optimized settings
 function playWithHlsJs(video, url, ch) {
     hlsInstance = new Hls({
-        enableWorker: true,
-        lowLatencyMode: false,
         maxBufferLength: 30,
         maxMaxBufferLength: 60,
         maxBufferSize: 60 * 1000 * 1000,
@@ -671,10 +661,12 @@ function playWithHlsJs(video, url, ch) {
         fragLoadingTimeOut: 30000,
         fragLoadingMaxRetry: 8,
         fragLoadingRetryDelay: 1000,
+        enableWorker: true,
+        lowLatencyMode: false,
         startFragPrefetch: true,
         progressive: true,
         testBandwidth: true,
-        abrEwmaDefaultEstimate: 1000000,
+        abrEwmaDefaultEstimate: 1000000, // Lower initial estimate for mobile
         abrBandWidthFactor: 0.9,
         abrBandWidthUpFactor: 0.7,
         abrMaxWithRealBitrate: true,
@@ -689,7 +681,10 @@ function playWithHlsJs(video, url, ch) {
         appendErrorMaxRetry: 5,
         capLevelToPlayerSize: false,
         highBufferWatchdogPeriod: 2,
-        xhrSetup: function(xhr, url) { xhr.timeout = 30000; }
+        // Android specific: try to use less aggressive settings
+        xhrSetup: function(xhr, url) {
+            xhr.timeout = 30000;
+        }
     });
 
     hlsInstance.loadSource(url);
@@ -711,7 +706,6 @@ function playWithHlsJs(video, url, ch) {
     let errorCount = 0;
     let lastFatalTime = 0;
 
-    // Enhanced error handling: merged xsukax error banner + SENTV recovery logic
     hlsInstance.on(Hls.Events.ERROR, function(event, data) {
         debugLog('HLS error: ' + data.type + ' / ' + data.details + ' fatal=' + data.fatal);
 
@@ -722,11 +716,16 @@ function playWithHlsJs(video, url, ch) {
             if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
                 if (errorCount <= 5 && now - lastFatalTime > 2000) {
                     lastFatalTime = now;
-                    showStreamError('Bağlantı sorunu, yeniden deneniyor... (' + errorCount + '/5)');
-                    setTimeout(() => { if (hlsInstance) hlsInstance.startLoad(); }, 2000);
+                    showToast('🔄', 'Bağlantı sorunu, yeniden deneniyor...');
+                    setTimeout(() => {
+                        if (hlsInstance) {
+                            hlsInstance.startLoad();
+                        }
+                    }, 2000);
                 } else {
+                    // Too many errors, try native fallback on Android
                     debugLog('Too many network errors, trying native fallback');
-                    showStreamError('Ağ hatası — alternatif yöntem deneniyor');
+                    showToast('🔄', 'Alternatif yöntem deneniyor...');
                     if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
                     playNative(video, url, ch);
                 }
@@ -736,18 +735,18 @@ function playWithHlsJs(video, url, ch) {
                     hlsInstance.recoverMediaError();
                 } else {
                     debugLog('Media error recovery failed, trying native');
-                    showStreamError('Medya hatası — alternatif yöntem deneniyor');
                     if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
                     playNative(video, url, ch);
                 }
             } else {
-                showStreamError(data.type + ': ' + data.details);
+                showToast('❌', 'Kanal yüklenemedi');
                 document.getElementById('bufferingSpinner').style.display = 'none';
                 showBg();
                 currentPlayingUrl = '';
             }
         }
 
+        // Non-fatal stall recovery
         if (data.details === 'bufferStalledError' && video.currentTime > 0) {
             video.currentTime += 0.2;
         }
@@ -759,7 +758,12 @@ function playWithHlsJs(video, url, ch) {
 
 function playNative(video, url, ch) {
     debugLog('Native play: ' + url.substring(0, 60));
+
+    // For blob URLs or direct URLs
     video.src = url;
+
+    // Also add as source element for better Android compatibility
+    // (some WebViews prefer <source> over src attribute)
     video.innerHTML = '';
     var source = document.createElement('source');
     source.src = url;
@@ -769,6 +773,7 @@ function playNative(video, url, ch) {
         source.type = 'video/mp4';
     }
     video.appendChild(source);
+
     video.load();
     attemptPlay(video, ch);
     setupVideoEvents(video, ch);
@@ -776,37 +781,44 @@ function playNative(video, url, ch) {
 }
 
 function attemptPlay(video, ch) {
+    // Multiple play attempts with increasing delays for Android
     var playAttempt = function(attempt) {
         if (attempt > 5) {
             debugLog('All play attempts failed');
             document.getElementById('bufferingSpinner').style.display = 'none';
-            showStreamError('Oynatma başlatılamadı — ekrana dokunun');
+            showToast('⚠️', 'Oynatma başlatılamadı, ekrana dokunun');
+            // Set up tap-to-play
             setupTapToPlay(video);
             return;
         }
+
         debugLog('Play attempt #' + attempt);
         var playPromise = video.play();
         if (playPromise !== undefined) {
             playPromise.then(function() {
                 debugLog('Play started on attempt #' + attempt);
-                hideStreamError();
             }).catch(function(err) {
                 debugLog('Play attempt #' + attempt + ' failed: ' + err.name + ': ' + err.message);
+
                 if (err.name === 'NotAllowedError') {
+                    // Autoplay blocked - need user interaction
                     debugLog('Autoplay blocked, setting up tap-to-play');
                     document.getElementById('bufferingSpinner').style.display = 'none';
-                    showStreamError('Oynatmak için ekrana dokunun');
+                    showToast('👆', 'Oynatmak için ekrana dokunun');
                     setupTapToPlay(video);
                 } else if (err.name === 'AbortError') {
+                    // Load interrupted, retry
                     setTimeout(function() { playAttempt(attempt + 1); }, 500 * attempt);
                 } else if (err.name === 'NotSupportedError') {
+                    // Format not supported
                     debugLog('Format not supported natively');
                     if (!hlsInstance && platformInfo.hlsJsSupported) {
+                        // Try HLS.js as fallback
                         debugLog('Falling back to HLS.js');
                         playWithHlsJs(video, video.src || video.querySelector('source')?.src, ch);
                     } else {
                         document.getElementById('bufferingSpinner').style.display = 'none';
-                        showStreamError('Bu format desteklenmiyor');
+                        showToast('❌', 'Bu format desteklenmiyor');
                         showBg();
                         currentPlayingUrl = '';
                     }
@@ -816,6 +828,8 @@ function attemptPlay(video, ch) {
             });
         }
     };
+
+    // Small delay before first attempt on Android
     if (platformInfo.isAndroid) {
         setTimeout(function() { playAttempt(1); }, 300);
     } else {
@@ -826,20 +840,24 @@ function attemptPlay(video, ch) {
 function setupTapToPlay(video) {
     var overlay = document.getElementById('videoContainer');
     var handler = function tapHandler(e) {
+        // Don't trigger on control buttons
         if (e.target.closest('#playerControls') || e.target.closest('#channelInfoBar') ||
             e.target.closest('#sidebar') || e.target.closest('#categorySidebar')) return;
+
         debugLog('Tap-to-play triggered');
         video.play().then(function() {
             debugLog('Tap-to-play: play started');
-            hideStreamError();
             overlay.removeEventListener('click', tapHandler);
             overlay.removeEventListener('touchstart', tapHandler);
         }).catch(function(err) {
             debugLog('Tap-to-play failed: ' + err.message);
         });
     };
+
     overlay.addEventListener('click', handler);
     overlay.addEventListener('touchstart', handler, { passive: true });
+
+    // Also try playing muted first (Android often allows muted autoplay)
     if (platformInfo.isAndroid) {
         var wasMuted = video.muted;
         video.muted = true;
@@ -847,7 +865,6 @@ function setupTapToPlay(video) {
             debugLog('Muted autoplay worked, unmuting after delay');
             setTimeout(function() {
                 video.muted = wasMuted;
-                hideStreamError();
                 overlay.removeEventListener('click', handler);
                 overlay.removeEventListener('touchstart', handler);
             }, 500);
@@ -865,41 +882,56 @@ function setupVideoEvents(video, ch) {
         isPlaying = true;
         document.getElementById('playPauseBtn').textContent = '⏸';
         hideBg();
-        hideStreamError();
     };
+
     video.onwaiting = function() {
         document.getElementById('bufferingSpinner').style.display = 'block';
     };
-    video.oncanplay = function() { debugLog('Event: canplay'); };
+
+    video.oncanplay = function() {
+        debugLog('Event: canplay');
+    };
+
     video.oncanplaythrough = function() {
         debugLog('Event: canplaythrough');
         document.getElementById('bufferingSpinner').style.display = 'none';
     };
+
     video.onloadedmetadata = function() {
         debugLog('Event: loadedmetadata ' + video.videoWidth + 'x' + video.videoHeight);
     };
+
     video.onloadeddata = function() {
         debugLog('Event: loadeddata');
+        // Try play again when data is loaded (helps on Android)
         if (video.paused && !isPlaying) {
             video.play().catch(function() {});
         }
     };
-    video.onstalled = function() { debugLog('Event: stalled'); };
+
+    video.onstalled = function() {
+        debugLog('Event: stalled');
+    };
+
     video.onerror = function(e) {
         var err = video.error;
         var msg = err ? ('code=' + err.code + ' msg=' + (err.message || 'unknown')) : 'unknown';
         debugLog('Event: error - ' + msg);
         document.getElementById('bufferingSpinner').style.display = 'none';
         currentPlayingUrl = '';
+
         if (stallChecker) { clearInterval(stallChecker); stallChecker = null; }
         if (resolutionChecker) { clearInterval(resolutionChecker); resolutionChecker = null; }
+
+        // On Android, if native fails, try HLS.js
         if (!hlsInstance && platformInfo.hlsJsSupported && err && err.code !== 4) {
             debugLog('Native error, trying HLS.js fallback');
             currentPlayingUrl = ch.url;
             playWithHlsJs(video, ch.url, ch);
             return;
         }
-        showStreamError('Video hatası: ' + (err ? err.message || 'kod ' + err.code : 'bilinmiyor'));
+
+        showToast('❌', 'Bu kanal oynatılamıyor');
         showBg();
     };
 }
@@ -920,7 +952,9 @@ function setupStallChecker(video) {
                 }
                 sc = 0;
             }
-        } else { sc = 0; }
+        } else {
+            sc = 0;
+        }
         lastT = video.currentTime;
     }, 3000);
 }
@@ -939,27 +973,6 @@ function playPrevChannel(){if(!filteredChannels.length)return;focusedChannelInde
 function togglePlayPause(){const v=document.getElementById('videoPlayer');if(v.paused){v.play().catch(function(){});isPlaying=true;document.getElementById('playPauseBtn').textContent='⏸';}else{v.pause();isPlaying=false;document.getElementById('playPauseBtn').textContent='▶️';}}
 function toggleMute(){const v=document.getElementById('videoPlayer');v.muted=!v.muted;document.getElementById('muteBtn').textContent=v.muted?'🔇':'🔊';document.getElementById('volumeSlider').value=v.muted?0:v.volume*100;}
 function setVolume(val){const v=document.getElementById('videoPlayer');v.volume=val/100;v.muted=val==0;document.getElementById('muteBtn').textContent=val==0?'🔇':(val<50?'🔉':'🔊');}
-
-// ==========================================
-// PiP SUPPORT (from xsukax player)
-// ==========================================
-async function togglePiP() {
-    const v = document.getElementById('videoPlayer');
-    if (!v.src && !hlsInstance) { showToast('⚠️', 'Oynatılan bir kanal yok'); return; }
-    try {
-        if (document.pictureInPictureElement) {
-            await document.exitPictureInPicture();
-            showToast('⧉', 'PiP kapatıldı');
-        } else {
-            await v.requestPictureInPicture();
-            showToast('⧉', 'PiP açıldı');
-        }
-    } catch(e) {
-        debugLog('PiP error: ' + e.message);
-        showToast('⚠️', 'PiP bu tarayıcıda desteklenmiyor');
-    }
-}
-
 function toggleFullscreen(){
     const el=document.documentElement;
     if(!document.fullscreenElement&&!document.webkitFullscreenElement&&!document.mozFullScreenElement&&!document.msFullscreenElement){
@@ -997,48 +1010,28 @@ function setupTouchGestures(){
 }
 function setupEventListeners(){document.addEventListener('keydown',handleKeydown);}
 
-// ==========================================
-// ENHANCED KEYBOARD SHORTCUTS (merged from xsukax)
-// ==========================================
 function handleKeydown(e){
     const ae=document.activeElement;if(ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'||ae.tagName==='SELECT')){if(e.key==='Escape'){ae.blur();e.preventDefault();}return;}
-    const v=document.getElementById('videoPlayer');
 
     switch(e.key){
         case'ArrowLeft':e.preventDefault();
             if(focusMode==='channels'){showCategorySidebar();}
             else if(focusMode==='categories'){hideCategorySidebar();}
-            else if(focusMode==='none'&&!sidebarVisible&&!catSidebarVisible){
-                // xsukax feature: seek backward 10s when player focused
-                if(v.src||hlsInstance){v.currentTime=Math.max(0,v.currentTime-10);showToast('⏪','10 saniye geri');}
-                else{showSidebar();}
-            }
+            else{showSidebar();}
             break;
         case'ArrowRight':e.preventDefault();
             if(focusMode==='categories'){hideCategorySidebar();showSidebar();}
             else if(focusMode==='channels'){hideSidebar();}
-            else if(focusMode==='none'&&!sidebarVisible&&!catSidebarVisible){
-                // xsukax feature: seek forward 10s when player focused
-                if(v.src||hlsInstance){v.currentTime=Math.min(v.duration||0,v.currentTime+10);showToast('⏩','10 saniye ileri');}
-            }
             break;
         case'ArrowUp':e.preventDefault();
             if(focusMode==='channels'){if(focusedChannelIndex>0){focusedChannelIndex--;updateFocusUI();}}
             else if(focusMode==='categories'){if(focusedCategoryIndex>0){focusedCategoryIndex--;renderCatList();}}
-            else{
-                // xsukax feature: volume up when player focused
-                if(v.src||hlsInstance){adjustVolume(10);}
-                else if(currentChannelIndex>=0){playNextChannel();}
-            }
+            else{if(currentChannelIndex>=0)playNextChannel();}
             break;
         case'ArrowDown':e.preventDefault();
             if(focusMode==='channels'){if(focusedChannelIndex<filteredChannels.length-1){focusedChannelIndex++;updateFocusUI();}}
             else if(focusMode==='categories'){if(focusedCategoryIndex<allCategoryNames.length-1){focusedCategoryIndex++;renderCatList();}}
-            else{
-                // xsukax feature: volume down when player focused
-                if(v.src||hlsInstance){adjustVolume(-10);}
-                else if(currentChannelIndex>=0){playPrevChannel();}
-            }
+            else{if(currentChannelIndex>=0)playPrevChannel();}
             break;
         case'ChannelUp':e.preventDefault();if(currentChannelIndex>=0)playNextChannel();break;
         case'ChannelDown':e.preventDefault();if(currentChannelIndex>=0)playPrevChannel();break;
@@ -1056,7 +1049,6 @@ function handleKeydown(e){
         case' ':e.preventDefault();togglePlayPause();break;
         case'm':case'M':e.preventDefault();toggleMute();break;
         case'f':case'F':e.preventDefault();toggleFullscreen();break;
-        case'p':case'P':e.preventDefault();togglePiP();break; // PiP shortcut from xsukax
         case's':case'S':e.preventDefault();toggleSidebar();break;
         case'+':case'=':e.preventDefault();adjustVolume(5);break;
         case'-':case'_':e.preventDefault();adjustVolume(-5);break;
