@@ -7,7 +7,7 @@
 
 </head><body>
 <video id="hls-example" class="video-js vjs-default-skin" controls preload="auto">
-<source type="application/x-mpegURL" src="https://donis.jimpenopisonline.online/premiumtv/daddy3.php?id=62">
+<source type="application/x-mpegURL" src="http://cdn.vizitv.workers.dev/52.m3u8">
 </video>
 </body>
 <script src="https://livetv.work/play/iframe-css/video.js"></script> 
