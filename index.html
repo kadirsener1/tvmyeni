@@ -118,6 +118,7 @@
         .number-hint{font-size:12px;color:var(--text-dim);margin-top:4px}
         #mobileMenuBtn{display:none;position:fixed;top:15px;left:15px;z-index:900;width:44px;height:44px;border-radius:12px;background:rgba(10,10,26,.9);border:1px solid var(--border);color:var(--text);font-size:20px;cursor:pointer;align-items:center;justify-content:center;backdrop-filter:blur(10px)}
 
+        /* Debug panel for Android troubleshooting */
         #debugPanel{position:fixed;bottom:10px;left:10px;background:rgba(0,0,0,.9);color:#0f0;font-family:monospace;font-size:10px;padding:8px;border-radius:6px;z-index:99999;max-width:300px;max-height:200px;overflow-y:auto;display:none;word-wrap:break-word;line-height:1.4}
         #debugPanel.visible{display:block}
 
@@ -140,6 +141,7 @@
             .channel-num{font-size:10px;padding:2px 6px}
             .channel-count{padding:6px 12px;font-size:11px}
             .sidebar-cat-label{padding:6px 12px;font-size:11px}
+
             #channelInfoBar{padding:20px 14px 16px 14px;bottom:0}
             .info-bar-content{flex-direction:column;align-items:flex-start;gap:6px}
             .info-bar-left{gap:10px;width:100%}
@@ -149,6 +151,7 @@
             .info-bar-right{width:100%;justify-content:flex-start;gap:8px}
             .info-bar-resolution{font-size:11px;padding:3px 10px}
             .info-bar-live{font-size:10px;padding:3px 8px}
+
             #playerControls{padding:12px 16px;flex-wrap:wrap;gap:8px}
             .controls-left{gap:8px}
             .controls-right{gap:8px}
@@ -207,6 +210,7 @@
             .ctrl-btn{min-width:44px;min-height:44px}
             .icon-btn{min-width:40px;min-height:40px}
         }
+
         @supports(padding-bottom:env(safe-area-inset-bottom)){
             #channelInfoBar{padding-bottom:calc(16px + env(safe-area-inset-bottom))}
             #playerControls{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
@@ -249,7 +253,7 @@
     <div id="playerArea">
         <div id="videoContainer">
             <div id="videoBg"></div>
-            <video id="videoPlayer" playsinline webkit-playsinline preload="auto" x-webkit-airplay="allow" crossorigin="anonymous"></video>
+            <video id="videoPlayer" playsinline webkit-playsinline preload="auto" x-webkit-airplay="allow"></video>
             <div id="welcomeScreen">
                 <div class="welcome-icon">📺</div>
                 <div class="welcome-title">SENTV</div>
@@ -300,70 +304,54 @@
         </div>
     </div>
 </div>
-
-<!-- HLS.js - En son stabil sürüm -->
-<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
-<!-- dash.js - DASH/MPD stream desteği -->
-<script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
-<!-- mpegts.js - FLV/TS stream desteği -->
-<script src="https://cdn.jsdelivr.net/npm/mpegts.js@1.7.3/dist/mpegts.min.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js"></script>
 <script>
-const M3U_URL='https://raw.githubusercontent.com/kadirsener1/avva/refs/heads/main/playlist.m3u';
+const M3U_URL='https://raw.githubusercontent.com/kadirsener1/tivim/refs/heads/main/merged.m3u';
 const AUTO_REFRESH=30*60*1000;
-
-// CORS Proxy listesi - birden fazla proxy ile fallback
-const CORS_PROXIES = [
-    'https://api.allorigins.win/raw?url=',
-    'https://corsproxy.io/?',
-    'https://api.codetabs.com/v1/proxy?quest='
-];
-
 let channels=[],filteredChannels=[],categories=[],allCategoryNames=[];
 let currentCategory='all',currentChannelIndex=-1,focusedChannelIndex=0;
 let sidebarVisible=false,catSidebarVisible=false,isPlaying=false;
-let hlsInstance=null,dashInstance=null,mpegtsInstance=null;
-let controlsTimeout=null,overlayTimeout=null;
+let hlsInstance=null,controlsTimeout=null,overlayTimeout=null;
 let numberBuffer='',numberTimeout=null;
 let focusedCategoryIndex=0;
 let currentResolution='',stallChecker=null,resolutionChecker=null;
 let currentPlayingUrl='';
 let focusMode='none';
-let currentRetryCount=0;
-let maxRetries=4;
-let blobUrls=[];
 
+// ==========================================
+// PLATFORM DETECTION
+// ==========================================
 const platformInfo = {
     isAndroid: /Android/i.test(navigator.userAgent),
     isAndroidWebView: /wv\)/.test(navigator.userAgent) || /Android.*Version\/\d/.test(navigator.userAgent),
     isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent),
     isSafari: /^((?!chrome|android).)*safari/i.test(navigator.userAgent),
-    isTizen: /Tizen/i.test(navigator.userAgent),
-    isWebOS: /Web0S|webOS/i.test(navigator.userAgent),
-    isSmartTV: /SmartTV|SMART-TV|Smart_TV|NetCast|HbbTV/i.test(navigator.userAgent),
     hasNativeHLS: (function(){
         var v = document.createElement('video');
         return !!(v.canPlayType('application/vnd.apple.mpegurl') || v.canPlayType('application/x-mpegURL'));
     })(),
     hasMSE: typeof MediaSource !== 'undefined' && typeof MediaSource.isTypeSupported === 'function',
-    hlsJsSupported: false, // will check after load
-    dashJsAvailable: false,
-    mpegtsAvailable: false
+    hlsJsSupported: typeof Hls !== 'undefined' ? Hls.isSupported() : false
 };
 
+// ==========================================
+// DEBUG LOGGING
+// ==========================================
 let debugLines = [];
 function debugLog(msg) {
     const ts = new Date().toLocaleTimeString();
     const line = `[${ts}] ${msg}`;
     debugLines.push(line);
-    if (debugLines.length > 80) debugLines.shift();
+    if (debugLines.length > 50) debugLines.shift();
     const dp = document.getElementById('debugPanel');
     if (dp) dp.innerHTML = debugLines.join('<br>');
     console.log('[SENTV]', msg);
 }
 
+// Triple-tap to toggle debug panel
 let debugTapCount = 0, debugTapTimer = null;
 document.addEventListener('click', function(e) {
+    // Only count taps in top-right corner
     if (e.clientX > window.innerWidth - 80 && e.clientY < 80) {
         debugTapCount++;
         clearTimeout(debugTapTimer);
@@ -378,22 +366,10 @@ document.addEventListener('click', function(e) {
 function showBg(){var b=document.getElementById('videoBg');b.classList.remove('playing');b.style.opacity='1';}
 function hideBg(){var b=document.getElementById('videoBg');b.classList.add('playing');b.style.opacity='0';}
 
-// Blob URL temizleme
-function cleanupBlobUrls() {
-    blobUrls.forEach(u => { try { URL.revokeObjectURL(u); } catch(e){} });
-    blobUrls = [];
-}
-
 document.addEventListener('DOMContentLoaded',async()=>{
-    // Library availability check
-    platformInfo.hlsJsSupported = (typeof Hls !== 'undefined') && Hls.isSupported();
-    platformInfo.dashJsAvailable = (typeof dashjs !== 'undefined');
-    platformInfo.mpegtsAvailable = (typeof mpegts !== 'undefined') && mpegts.isSupported();
-
-    debugLog('Platform: ' + navigator.userAgent.substring(0, 100));
-    debugLog('Android=' + platformInfo.isAndroid + ' iOS=' + platformInfo.isIOS + ' WebView=' + platformInfo.isAndroidWebView);
-    debugLog('NativeHLS=' + platformInfo.hasNativeHLS + ' MSE=' + platformInfo.hasMSE);
-    debugLog('HLS.js=' + platformInfo.hlsJsSupported + ' dash.js=' + platformInfo.dashJsAvailable + ' mpegts.js=' + platformInfo.mpegtsAvailable);
+    debugLog('Platform: ' + navigator.userAgent.substring(0, 80));
+    debugLog('Android=' + platformInfo.isAndroid + ' WebView=' + platformInfo.isAndroidWebView);
+    debugLog('NativeHLS=' + platformInfo.hasNativeHLS + ' MSE=' + platformInfo.hasMSE + ' HLS.js=' + platformInfo.hlsJsSupported);
 
     var img=new Image();
     img.src='https://raw.githubusercontent.com/kadirsener1/tvmyeni/refs/heads/main/bg.JPG';
@@ -408,12 +384,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
 
 async function loadM3U(url){
     try{const r=await fetch(url);if(!r.ok)throw 0;channels=parseM3U(await r.text());debugLog('M3U loaded direct: '+channels.length+' ch');}
-    catch(e){
-        for(let i=0;i<CORS_PROXIES.length;i++){
-            try{const r=await fetch(CORS_PROXIES[i]+encodeURIComponent(url));if(r.ok){channels=parseM3U(await r.text());debugLog('M3U loaded proxy['+i+']: '+channels.length+' ch');break;}}catch(e2){}
-        }
-        if(!channels.length){showToast('❌','M3U yüklenemedi');debugLog('M3U FAIL');return;}
-    }
+    catch(e){try{const r=await fetch('https://api.allorigins.win/raw?url='+encodeURIComponent(url));channels=parseM3U(await r.text());debugLog('M3U loaded proxy: '+channels.length+' ch');}catch(e2){channels=[];showToast('❌','M3U yüklenemedi');debugLog('M3U FAIL: '+e2);return;}}
     channels.forEach((c,i)=>{c.index=i;c.number=i+1;});
     extractCategories();filterChannels();forceRebuildList();
     showToast('✅',`${channels.length} kanal yüklendi`);
@@ -536,531 +507,321 @@ function toggleSidebar(){
 }
 
 // ==========================================
-// STREAM FORMAT TESPİTİ
+// RESOLVE PROXY URL - Pre-resolve redirect for Android
 // ==========================================
-function detectStreamType(url) {
-    const u = url.toLowerCase();
-    if (u.includes('.mpd') || u.includes('manifest.mpd') || u.includes('/dash/')) return 'dash';
-    if (u.includes('.flv') || u.endsWith('.flv')) return 'flv';
-    if (u.includes('.ts') && !u.includes('.m3u')) return 'ts';
-    if (u.includes('.mp4') && !u.includes('.m3u')) return 'mp4';
-    if (u.includes('.m3u8') || u.includes('m3u8') || u.includes('/hls/') ||
-        u.includes('/live/') || u.includes('/playlist') || u.includes('token=') ||
-        u.includes('vavoo') || u.includes('/play/') || u.includes('.m3u')) return 'hls';
-    // Default to HLS for unknown IPTV streams
-    return 'hls';
+async function resolveStreamUrl(url) {
+    // If the URL contains a proxy/resolve endpoint, pre-fetch to get final URL
+    // This helps Android WebView which may not follow redirects well for media
+    if (url.includes('/resolve?') || url.includes('vavooproxy')) {
+        debugLog('Pre-resolving proxy URL...');
+        try {
+            // First try: fetch with redirect:follow to get final URL
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 10000);
+            
+            const resp = await fetch(url, {
+                method: 'GET',
+                redirect: 'follow',
+                signal: controller.signal,
+                headers: {
+                    'Accept': '*/*'
+                }
+            });
+            clearTimeout(timeout);
+            
+            if (resp.ok || resp.status === 200) {
+                // Check if response itself is a redirect URL or a playlist
+                const contentType = resp.headers.get('content-type') || '';
+                const finalUrl = resp.url; // The URL after redirects
+                
+                debugLog('Resolved URL: ' + finalUrl.substring(0, 80));
+                debugLog('Content-Type: ' + contentType);
+                
+                // If the final URL is different from original, use it
+                if (finalUrl !== url && finalUrl.length > 10) {
+                    return finalUrl;
+                }
+                
+                // If response is a URL text
+                const text = await resp.text();
+                if (text && text.trim().startsWith('http') && text.trim().indexOf('\n') === -1) {
+                    debugLog('Got redirect URL from body: ' + text.trim().substring(0, 80));
+                    return text.trim();
+                }
+                
+                // If it's an m3u8 playlist content, create a blob URL
+                if (text && (text.includes('#EXTM3U') || text.includes('#EXT-X-'))) {
+                    debugLog('Got m3u8 playlist content, creating blob');
+                    const blob = new Blob([text], { type: 'application/vnd.apple.mpegurl' });
+                    return URL.createObjectURL(blob);
+                }
+                
+                return finalUrl;
+            } else {
+                debugLog('Resolve HTTP error: ' + resp.status);
+            }
+        } catch(e) {
+            debugLog('Resolve error: ' + e.message);
+        }
+    }
+    return url;
 }
 
 // ==========================================
-// TÜM PLAYER INSTANCE TEMİZLEME
+// MAIN PLAY FUNCTION - Android Compatible
 // ==========================================
-function destroyAllPlayers() {
-    if (hlsInstance) {
-        try { hlsInstance.destroy(); } catch(e){}
-        hlsInstance = null;
-    }
-    if (dashInstance) {
-        try { dashInstance.reset(); } catch(e){}
-        dashInstance = null;
-    }
-    if (mpegtsInstance) {
-        try { mpegtsInstance.unload(); mpegtsInstance.detachMediaElement(); mpegtsInstance.destroy(); } catch(e){}
-        mpegtsInstance = null;
-    }
-    if (stallChecker) { clearInterval(stallChecker); stallChecker = null; }
-    if (resolutionChecker) { clearInterval(resolutionChecker); resolutionChecker = null; }
-    cleanupBlobUrls();
-}
+async function playChannel(fi){
+    const ch=filteredChannels[fi];if(!ch)return;
 
-// ==========================================
-// VIDEO ELEMENT SIFIRLAMA
-// ==========================================
-function resetVideoElement() {
-    const video = document.getElementById('videoPlayer');
-    video.pause();
-    video.removeAttribute('src');
-    video.innerHTML = '';
-    // crossorigin ayarını kaldır - bazı streamlerde sorun çıkarıyor
-    video.removeAttribute('crossorigin');
-    video.load();
-    return video;
-}
-
-// ==========================================
-// ANA PLAY FONKSİYONU - Geliştirilmiş
-// ==========================================
-async function playChannel(fi) {
-    const ch = filteredChannels[fi];
-    if (!ch) return;
-
-    if (ch.url === currentPlayingUrl) {
+    if(ch.url===currentPlayingUrl){
         hideAllSidebars();
         showChannelInfoBar(ch);
         return;
     }
 
-    currentChannelIndex = ch.index;
-    focusedChannelIndex = fi;
-    currentPlayingUrl = ch.url;
-    currentRetryCount = 0;
+    currentChannelIndex=ch.index;focusedChannelIndex=fi;currentPlayingUrl=ch.url;
+    const video=document.getElementById('videoPlayer');
+    let url=ch.url;
 
-    debugLog('═══════════════════════════════');
-    debugLog('Playing: ' + ch.name);
-    debugLog('URL: ' + ch.url.substring(0, 120));
+    debugLog('--- Playing: ' + ch.name);
+    debugLog('Original URL: ' + url.substring(0, 80));
 
-    destroyAllPlayers();
-    const video = resetVideoElement();
+    // Cleanup previous instance
+    if(hlsInstance){hlsInstance.destroy();hlsInstance=null;}
+    if(stallChecker){clearInterval(stallChecker);stallChecker=null;}
+    if(resolutionChecker){clearInterval(resolutionChecker);resolutionChecker=null;}
+
+    // Remove all source attributes and event handlers
+    video.pause();
+    video.removeAttribute('src');
+    video.innerHTML = ''; // Remove any <source> elements
+    video.load();
     updateResDisplay('');
 
-    document.getElementById('welcomeScreen').style.display = 'none';
-    document.getElementById('bufferingSpinner').style.display = 'block';
+    document.getElementById('welcomeScreen').style.display='none';
+    document.getElementById('bufferingSpinner').style.display='block';
     showBg();
 
-    const streamType = detectStreamType(ch.url);
-    debugLog('Stream type: ' + streamType);
+    // Pre-resolve URL for Android
+    try {
+        url = await resolveStreamUrl(url);
+        debugLog('Final URL: ' + url.substring(0, 80));
+    } catch(e) {
+        debugLog('URL resolve failed, using original: ' + e.message);
+        url = ch.url;
+    }
 
-    await executePlayStrategy(video, ch.url, ch, streamType, 0);
+    const isHLS = /\.m3u8/i.test(url) || /m3u8/i.test(url) || url.includes('vavoo') || url.includes('/play/');
+
+    debugLog('isHLS=' + isHLS + ' HLS.js=' + platformInfo.hlsJsSupported + ' NativeHLS=' + platformInfo.hasNativeHLS);
+
+    // Strategy selection for Android
+    if (platformInfo.isAndroid && !platformInfo.hasMSE && platformInfo.hasNativeHLS) {
+        // Android WebView without MSE but with native HLS - use native
+        debugLog('Strategy: Android native HLS');
+        playNative(video, url, ch);
+    } else if (platformInfo.isAndroid && platformInfo.isAndroidWebView && !platformInfo.hlsJsSupported) {
+        // Old Android WebView - try native
+        debugLog('Strategy: Android WebView fallback native');
+        playNative(video, url, ch);
+    } else if (isHLS && platformInfo.hlsJsSupported) {
+        // HLS.js supported (most modern browsers including Android Chrome)
+        debugLog('Strategy: HLS.js');
+        playWithHlsJs(video, url, ch);
+    } else if (isHLS && platformInfo.hasNativeHLS) {
+        // Native HLS (Safari, iOS, some Android)
+        debugLog('Strategy: Native HLS');
+        playNative(video, url, ch);
+    } else {
+        // Direct playback (mp4, etc)
+        debugLog('Strategy: Direct');
+        playNative(video, url, ch);
+    }
 
     startResMonitor();
-    document.getElementById('nowPlayingText').textContent = ch.name;
+    document.getElementById('nowPlayingText').textContent=ch.name;
     showChannelInfoBar(ch);
     forceRebuildList();
-    setTimeout(() => hideAllSidebars(), 400);
-    showToast('▶️', ch.name);
+    setTimeout(()=>hideAllSidebars(),400);
+    showToast('▶️',ch.name);
 }
 
-// ==========================================
-// PLAY STRATEGY ZİNCİRİ
-// Strategy 0: HLS.js / dash.js / mpegts.js (birincil)
-// Strategy 1: HLS.js with CORS proxy
-// Strategy 2: Native player (crossorigin=anonymous)
-// Strategy 3: Native player (crossorigin kaldırılmış)
-// Strategy 4: Native with CORS proxy
-// ==========================================
-async function executePlayStrategy(video, url, ch, streamType, strategyIndex) {
-    debugLog('Strategy #' + strategyIndex + ' for type=' + streamType);
-
-    switch(strategyIndex) {
-        case 0: // Birincil: Library ile oynat
-            if (streamType === 'dash' && platformInfo.dashJsAvailable) {
-                playWithDashJs(video, url, ch, strategyIndex);
-            } else if ((streamType === 'flv' || streamType === 'ts') && platformInfo.mpegtsAvailable) {
-                playWithMpegts(video, url, ch, streamType, strategyIndex);
-            } else if (streamType === 'hls' && platformInfo.hlsJsSupported) {
-                playWithHlsJs(video, url, ch, strategyIndex);
-            } else if (streamType === 'hls' && platformInfo.hasNativeHLS) {
-                // iOS/Safari - direkt native dene
-                playNative(video, url, ch, true, strategyIndex);
-            } else if (streamType === 'mp4') {
-                playNative(video, url, ch, false, strategyIndex);
-            } else {
-                // Hiç library yok, native dene
-                playNative(video, url, ch, streamType === 'hls', strategyIndex);
-            }
-            break;
-
-        case 1: // HLS.js + CORS Proxy
-            if (platformInfo.hlsJsSupported && streamType === 'hls') {
-                const proxyUrl = CORS_PROXIES[0] + encodeURIComponent(url);
-                debugLog('Trying CORS proxy: ' + CORS_PROXIES[0].substring(0, 30));
-                destroyAllPlayers();
-                video = resetVideoElement();
-                playWithHlsJs(video, proxyUrl, ch, strategyIndex);
-            } else {
-                executePlayStrategy(video, url, ch, streamType, strategyIndex + 1);
-            }
-            break;
-
-        case 2: // Native with crossorigin
-            debugLog('Native with crossorigin=anonymous');
-            destroyAllPlayers();
-            video = resetVideoElement();
-            video.setAttribute('crossorigin', 'anonymous');
-            playNative(video, url, ch, streamType === 'hls', strategyIndex);
-            break;
-
-        case 3: // Native without crossorigin
-            debugLog('Native without crossorigin');
-            destroyAllPlayers();
-            video = resetVideoElement();
-            video.removeAttribute('crossorigin');
-            playNative(video, url, ch, streamType === 'hls', strategyIndex);
-            break;
-
-        case 4: // Native + CORS Proxy
-            debugLog('Native + CORS proxy');
-            destroyAllPlayers();
-            video = resetVideoElement();
-            video.removeAttribute('crossorigin');
-            const proxiedUrl = CORS_PROXIES[0] + encodeURIComponent(url);
-            playNative(video, proxiedUrl, ch, streamType === 'hls', strategyIndex);
-            break;
-
-        default:
-            debugLog('All strategies exhausted');
-            document.getElementById('bufferingSpinner').style.display = 'none';
-            showToast('❌', 'Bu kanal oynatılamıyor');
-            showBg();
-            currentPlayingUrl = '';
-            break;
-    }
-}
-
-function nextStrategy(video, originalUrl, ch, currentStrategy) {
-    const streamType = detectStreamType(originalUrl);
-    // originalUrl'yi her zaman kullan (proxy eklenmiş olanı değil)
-    const cleanUrl = originalUrl.includes('allorigins.win') || originalUrl.includes('corsproxy.io') || originalUrl.includes('codetabs.com')
-        ? decodeURIComponent(originalUrl.split('?url=')[1] || originalUrl.split('?quest=')[1] || originalUrl.split('/?')[1] || originalUrl)
-        : originalUrl;
-    executePlayStrategy(video, cleanUrl, ch, streamType, currentStrategy + 1);
-}
-
-// ==========================================
-// HLS.js PLAYER - Ultra dayanıklı yapılandırma
-// ==========================================
-function playWithHlsJs(video, url, ch, strategyIndex) {
-    debugLog('HLS.js loading: ' + url.substring(0, 80));
-
-    const hlsConfig = {
-        // Buffer ayarları
+function playWithHlsJs(video, url, ch) {
+    hlsInstance = new Hls({
         maxBufferLength: 30,
-        maxMaxBufferLength: 120,
-        maxBufferSize: 120 * 1000 * 1000,
-        maxBufferHole: 1.5,
-        backBufferLength: 30,
-
-        // Timeout ayarları - çok cömert
-        manifestLoadingTimeOut: 30000,
-        manifestLoadingMaxRetry: 4,
-        manifestLoadingRetryDelay: 1500,
-        manifestLoadingMaxRetryTimeout: 30000,
-
-        levelLoadingTimeOut: 30000,
-        levelLoadingMaxRetry: 4,
-        levelLoadingRetryDelay: 1500,
-        levelLoadingMaxRetryTimeout: 30000,
-
-        fragLoadingTimeOut: 60000,
-        fragLoadingMaxRetry: 6,
+        maxMaxBufferLength: 60,
+        maxBufferSize: 60 * 1000 * 1000,
+        maxBufferHole: 0.5,
+        backBufferLength: 15,
+        manifestLoadingTimeOut: 20000,
+        manifestLoadingMaxRetry: 6,
+        manifestLoadingRetryDelay: 1000,
+        levelLoadingTimeOut: 20000,
+        levelLoadingMaxRetry: 6,
+        fragLoadingTimeOut: 30000,
+        fragLoadingMaxRetry: 8,
         fragLoadingRetryDelay: 1000,
-        fragLoadingMaxRetryTimeout: 60000,
-
-        // Worker & Performance
         enableWorker: true,
         lowLatencyMode: false,
         startFragPrefetch: true,
         progressive: true,
-
-        // ABR ayarları
         testBandwidth: true,
-        abrEwmaDefaultEstimate: 500000,
-        abrBandWidthFactor: 0.95,
+        abrEwmaDefaultEstimate: 1000000, // Lower initial estimate for mobile
+        abrBandWidthFactor: 0.9,
         abrBandWidthUpFactor: 0.7,
         abrMaxWithRealBitrate: true,
-        capLevelToPlayerSize: false,
-
-        // Canlı yayın ayarları
         liveSyncDurationCount: 3,
         liveMaxLatencyDurationCount: 10,
         liveDurationInfinity: true,
-        liveBackBufferLength: 30,
-
-        // Hata toleransı
-        nudgeOffset: 0.3,
+        nudgeOffset: 0.1,
         nudgeMaxRetry: 10,
         startPosition: -1,
         stretchShortVideoTrack: true,
         forceKeyFrameOnDiscontinuity: true,
         appendErrorMaxRetry: 5,
-        highBufferWatchdogPeriod: 3,
-
-        // XHR ayarları - CORS bypass
-        xhrSetup: function(xhr, xhrUrl) {
-            xhr.timeout = 60000;
-            xhr.withCredentials = false;
-        },
-
-        // Özel header gerektiğinde
-        fetchSetup: function(context, initParams) {
-            initParams.mode = 'cors';
-            initParams.credentials = 'omit';
-            return new Request(context.url, initParams);
-        }
-    };
-
-    hlsInstance = new Hls(hlsConfig);
-
-    let manifestLoaded = false;
-    let fatalErrorCount = 0;
-    let playStarted = false;
-
-    hlsInstance.on(Hls.Events.MANIFEST_PARSED, function(event, data) {
-        manifestLoaded = true;
-        debugLog('HLS manifest parsed, levels=' + data.levels.length + ' audio=' + data.audioTracks.length);
-
-        // En iyi kaliteyi seç
-        if (data.levels.length > 1) {
-            hlsInstance.currentLevel = -1; // Auto
-        }
-
-        attemptPlay(video, ch, strategyIndex);
-    });
-
-    hlsInstance.on(Hls.Events.MANIFEST_LOADED, function(event, data) {
-        debugLog('HLS manifest loaded, url=' + (data.url || '').substring(0, 60));
-    });
-
-    hlsInstance.on(Hls.Events.LEVEL_LOADED, function(event, data) {
-        if (!manifestLoaded) return;
-        debugLog('Level loaded, live=' + data.details.live + ' dur=' + Math.round(data.details.totalduration || 0));
-    });
-
-    hlsInstance.on(Hls.Events.FRAG_LOADED, function() {
-        if (!playStarted) {
-            playStarted = true;
-            debugLog('First fragment loaded');
-        }
-    });
-
-    hlsInstance.on(Hls.Events.FRAG_BUFFERED, function() {
-        document.getElementById('bufferingSpinner').style.display = 'none';
-    });
-
-    hlsInstance.on(Hls.Events.ERROR, function(event, data) {
-        debugLog('HLS error: ' + data.type + '/' + data.details + ' fatal=' + data.fatal + ' resp=' + (data.response ? data.response.code : 'n/a'));
-
-        if (data.fatal) {
-            fatalErrorCount++;
-
-            if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-                if (fatalErrorCount <= 3) {
-                    debugLog('Network error recovery attempt ' + fatalErrorCount);
-                    showToast('🔄', 'Bağlantı yeniden deneniyor...');
-                    setTimeout(() => {
-                        if (hlsInstance) {
-                            try { hlsInstance.startLoad(); } catch(e){}
-                        }
-                    }, 1500 * fatalErrorCount);
-                } else {
-                    debugLog('HLS.js network failed, trying next strategy');
-                    destroyAllPlayers();
-                    nextStrategy(video, ch.url, ch, strategyIndex);
-                }
-            } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-                if (fatalErrorCount <= 2) {
-                    debugLog('Media error recovery attempt ' + fatalErrorCount);
-                    try { hlsInstance.recoverMediaError(); } catch(e){}
-                } else if (fatalErrorCount <= 4) {
-                    debugLog('Swap audio codec recovery');
-                    try { hlsInstance.swapAudioCodec(); hlsInstance.recoverMediaError(); } catch(e){}
-                } else {
-                    debugLog('HLS.js media failed, trying next strategy');
-                    destroyAllPlayers();
-                    nextStrategy(video, ch.url, ch, strategyIndex);
-                }
-            } else {
-                debugLog('HLS.js other fatal error, trying next strategy');
-                destroyAllPlayers();
-                nextStrategy(video, ch.url, ch, strategyIndex);
-            }
-        }
-
-        // Non-fatal error handling
-        if (!data.fatal) {
-            if (data.details === 'bufferStalledError' && video.currentTime > 0) {
-                video.currentTime += 0.3;
-            }
+        capLevelToPlayerSize: false,
+        highBufferWatchdogPeriod: 2,
+        // Android specific: try to use less aggressive settings
+        xhrSetup: function(xhr, url) {
+            xhr.timeout = 30000;
         }
     });
 
     hlsInstance.loadSource(url);
     hlsInstance.attachMedia(video);
 
-    // Manifest yüklenme timeout
-    setTimeout(() => {
-        if (!manifestLoaded && hlsInstance) {
-            debugLog('HLS manifest timeout, trying next strategy');
-            destroyAllPlayers();
-            nextStrategy(video, ch.url, ch, strategyIndex);
-        }
-    }, 35000);
-
-    setupVideoEvents(video, ch, strategyIndex);
-    setupStallChecker(video, ch, strategyIndex);
-}
-
-// ==========================================
-// DASH.JS PLAYER
-// ==========================================
-function playWithDashJs(video, url, ch, strategyIndex) {
-    debugLog('dash.js loading: ' + url.substring(0, 80));
-
-    dashInstance = dashjs.MediaPlayer().create();
-    dashInstance.updateSettings({
-        streaming: {
-            delay: { liveDelay: 3 },
-            liveCatchup: { enabled: true, mode: 'liveCatchupModeLoLP' },
-            buffer: {
-                bufferTimeAtTopQuality: 30,
-                bufferTimeAtTopQualityLongForm: 60,
-                stallThreshold: 0.5,
-                bufferToKeep: 20,
-                bufferAheadToKeep: 40
-            },
-            abr: { autoSwitchBitrate: { audio: true, video: true } },
-            retryAttempts: { MPD: 5, MediaSegment: 5, InitializationSegment: 5 },
-            retryIntervals: { MPD: 2000, MediaSegment: 2000, InitializationSegment: 2000 }
-        }
+    hlsInstance.on(Hls.Events.MANIFEST_PARSED, function(event, data) {
+        debugLog('HLS manifest parsed, levels=' + data.levels.length);
+        attemptPlay(video, ch);
     });
 
-    dashInstance.initialize(video, url, true);
-
-    dashInstance.on('error', function(e) {
-        debugLog('dash.js error: ' + JSON.stringify(e).substring(0, 100));
-        destroyAllPlayers();
-        nextStrategy(video, ch.url, ch, strategyIndex);
-    });
-
-    dashInstance.on('playbackStarted', function() {
-        debugLog('dash.js playback started');
+    hlsInstance.on(Hls.Events.FRAG_BUFFERED, function() {
         document.getElementById('bufferingSpinner').style.display = 'none';
-        hideBg();
-        isPlaying = true;
     });
 
-    setupVideoEvents(video, ch, strategyIndex);
-    setupStallChecker(video, ch, strategyIndex);
+    hlsInstance.on(Hls.Events.LEVEL_LOADED, function(event, data) {
+        debugLog('Level loaded, duration=' + (data.details.totalduration || 'live'));
+    });
+
+    let errorCount = 0;
+    let lastFatalTime = 0;
+
+    hlsInstance.on(Hls.Events.ERROR, function(event, data) {
+        debugLog('HLS error: ' + data.type + ' / ' + data.details + ' fatal=' + data.fatal);
+
+        if (data.fatal) {
+            const now = Date.now();
+            errorCount++;
+
+            if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                if (errorCount <= 5 && now - lastFatalTime > 2000) {
+                    lastFatalTime = now;
+                    showToast('🔄', 'Bağlantı sorunu, yeniden deneniyor...');
+                    setTimeout(() => {
+                        if (hlsInstance) {
+                            hlsInstance.startLoad();
+                        }
+                    }, 2000);
+                } else {
+                    // Too many errors, try native fallback on Android
+                    debugLog('Too many network errors, trying native fallback');
+                    showToast('🔄', 'Alternatif yöntem deneniyor...');
+                    if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+                    playNative(video, url, ch);
+                }
+            } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                if (errorCount <= 3) {
+                    debugLog('Recovering media error...');
+                    hlsInstance.recoverMediaError();
+                } else {
+                    debugLog('Media error recovery failed, trying native');
+                    if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+                    playNative(video, url, ch);
+                }
+            } else {
+                showToast('❌', 'Kanal yüklenemedi');
+                document.getElementById('bufferingSpinner').style.display = 'none';
+                showBg();
+                currentPlayingUrl = '';
+            }
+        }
+
+        // Non-fatal stall recovery
+        if (data.details === 'bufferStalledError' && video.currentTime > 0) {
+            video.currentTime += 0.2;
+        }
+    });
+
+    setupVideoEvents(video, ch);
+    setupStallChecker(video);
 }
 
-// ==========================================
-// MPEGTS.JS PLAYER (FLV/TS)
-// ==========================================
-function playWithMpegts(video, url, ch, type, strategyIndex) {
-    debugLog('mpegts.js loading (' + type + '): ' + url.substring(0, 80));
+function playNative(video, url, ch) {
+    debugLog('Native play: ' + url.substring(0, 60));
 
-    const config = {
-        type: type === 'flv' ? 'flv' : 'mpegts',
-        isLive: true,
-        url: url
-    };
-
-    mpegtsInstance = mpegts.createPlayer(config, {
-        enableWorker: true,
-        enableStashBuffer: true,
-        stashInitialSize: 384 * 1024,
-        lazyLoadMaxDuration: 180,
-        seekType: 'range',
-        autoCleanupSourceBuffer: true,
-        autoCleanupMaxBackwardDuration: 120,
-        autoCleanupMinBackwardDuration: 60
-    });
-
-    mpegtsInstance.attachMediaElement(video);
-    mpegtsInstance.load();
-
-    mpegtsInstance.on(mpegts.Events.ERROR, function(errorType, errorDetail, errorInfo) {
-        debugLog('mpegts.js error: ' + errorType + ' ' + errorDetail);
-        destroyAllPlayers();
-        nextStrategy(video, ch.url, ch, strategyIndex);
-    });
-
-    mpegtsInstance.on(mpegts.Events.LOADING_COMPLETE, function() {
-        debugLog('mpegts.js loading complete');
-    });
-
-    attemptPlay(video, ch, strategyIndex);
-    setupVideoEvents(video, ch, strategyIndex);
-    setupStallChecker(video, ch, strategyIndex);
-}
-
-// ==========================================
-// NATIVE PLAYER
-// ==========================================
-function playNative(video, url, ch, isHLS, strategyIndex) {
-    debugLog('Native play: ' + url.substring(0, 80) + ' isHLS=' + isHLS);
-
+    // For blob URLs or direct URLs
     video.src = url;
 
-    if (isHLS) {
-        var source = document.createElement('source');
-        source.src = url;
+    // Also add as source element for better Android compatibility
+    // (some WebViews prefer <source> over src attribute)
+    video.innerHTML = '';
+    var source = document.createElement('source');
+    source.src = url;
+    if (url.includes('.m3u8') || url.includes('m3u8')) {
         source.type = 'application/x-mpegURL';
-        video.innerHTML = '';
-        video.appendChild(source);
+    } else if (url.includes('.mp4')) {
+        source.type = 'video/mp4';
     }
+    video.appendChild(source);
 
     video.load();
-
-    // Timeout for native loading
-    const nativeTimeout = setTimeout(() => {
-        if (video.readyState < 2 && !isPlaying) {
-            debugLog('Native timeout, trying next strategy');
-            nextStrategy(video, ch.url, ch, strategyIndex);
-        }
-    }, 20000);
-
-    const origOnPlaying = video.onplaying;
-    video.addEventListener('playing', function natPlaying() {
-        clearTimeout(nativeTimeout);
-        video.removeEventListener('playing', natPlaying);
-    }, { once: true });
-
-    attemptPlay(video, ch, strategyIndex);
-    setupVideoEvents(video, ch, strategyIndex, nativeTimeout);
-    setupStallChecker(video, ch, strategyIndex);
+    attemptPlay(video, ch);
+    setupVideoEvents(video, ch);
+    setupStallChecker(video);
 }
 
-// ==========================================
-// PLAY ATTEMPT - Her platform için optimize
-// ==========================================
-function attemptPlay(video, ch, strategyIndex) {
+function attemptPlay(video, ch) {
+    // Multiple play attempts with increasing delays for Android
     var playAttempt = function(attempt) {
         if (attempt > 5) {
-            debugLog('All play attempts failed for strategy #' + strategyIndex);
-            // Don't give up - setup tap to play
+            debugLog('All play attempts failed');
             document.getElementById('bufferingSpinner').style.display = 'none';
-            showToast('👆', 'Oynatmak için ekrana dokunun');
+            showToast('⚠️', 'Oynatma başlatılamadı, ekrana dokunun');
+            // Set up tap-to-play
             setupTapToPlay(video);
             return;
         }
 
-        debugLog('Play attempt #' + attempt + ' (strategy #' + strategyIndex + ')');
-
+        debugLog('Play attempt #' + attempt);
         var playPromise = video.play();
         if (playPromise !== undefined) {
             playPromise.then(function() {
-                debugLog('Play started! attempt #' + attempt);
+                debugLog('Play started on attempt #' + attempt);
             }).catch(function(err) {
-                debugLog('Play failed #' + attempt + ': ' + err.name + ': ' + err.message);
+                debugLog('Play attempt #' + attempt + ' failed: ' + err.name + ': ' + err.message);
 
                 if (err.name === 'NotAllowedError') {
-                    // Autoplay engellendi
-                    if (platformInfo.isAndroid || platformInfo.isIOS) {
-                        // Mobilde muted autoplay dene
-                        var wasMuted = video.muted;
-                        video.muted = true;
-                        video.play().then(function() {
-                            debugLog('Muted autoplay worked');
-                            setTimeout(function() {
-                                video.muted = wasMuted;
-                            }, 1000);
-                        }).catch(function() {
-                            video.muted = wasMuted;
-                            debugLog('Even muted autoplay failed');
-                            document.getElementById('bufferingSpinner').style.display = 'none';
-                            showToast('👆', 'Oynatmak için ekrana dokunun');
-                            setupTapToPlay(video);
-                        });
+                    // Autoplay blocked - need user interaction
+                    debugLog('Autoplay blocked, setting up tap-to-play');
+                    document.getElementById('bufferingSpinner').style.display = 'none';
+                    showToast('👆', 'Oynatmak için ekrana dokunun');
+                    setupTapToPlay(video);
+                } else if (err.name === 'AbortError') {
+                    // Load interrupted, retry
+                    setTimeout(function() { playAttempt(attempt + 1); }, 500 * attempt);
+                } else if (err.name === 'NotSupportedError') {
+                    // Format not supported
+                    debugLog('Format not supported natively');
+                    if (!hlsInstance && platformInfo.hlsJsSupported) {
+                        // Try HLS.js as fallback
+                        debugLog('Falling back to HLS.js');
+                        playWithHlsJs(video, video.src || video.querySelector('source')?.src, ch);
                     } else {
                         document.getElementById('bufferingSpinner').style.display = 'none';
-                        showToast('👆', 'Oynatmak için tıklayın');
-                        setupTapToPlay(video);
+                        showToast('❌', 'Bu format desteklenmiyor');
+                        showBg();
+                        currentPlayingUrl = '';
                     }
-                } else if (err.name === 'AbortError') {
-                    setTimeout(function() { playAttempt(attempt + 1); }, 300 * attempt);
-                } else if (err.name === 'NotSupportedError') {
-                    debugLog('Format not supported, trying next strategy');
-                    nextStrategy(video, ch.url, ch, strategyIndex);
                 } else {
                     setTimeout(function() { playAttempt(attempt + 1); }, 500 * attempt);
                 }
@@ -1068,51 +829,53 @@ function attemptPlay(video, ch, strategyIndex) {
         }
     };
 
-    // Android'de biraz bekle
+    // Small delay before first attempt on Android
     if (platformInfo.isAndroid) {
-        setTimeout(function() { playAttempt(1); }, 200);
+        setTimeout(function() { playAttempt(1); }, 300);
     } else {
         playAttempt(1);
     }
 }
 
-// ==========================================
-// TAP TO PLAY
-// ==========================================
 function setupTapToPlay(video) {
-    var container = document.getElementById('videoContainer');
-
-    function tapHandler(e) {
+    var overlay = document.getElementById('videoContainer');
+    var handler = function tapHandler(e) {
+        // Don't trigger on control buttons
         if (e.target.closest('#playerControls') || e.target.closest('#channelInfoBar') ||
             e.target.closest('#sidebar') || e.target.closest('#categorySidebar')) return;
 
         debugLog('Tap-to-play triggered');
-        video.muted = false;
         video.play().then(function() {
-            debugLog('Tap-to-play: success');
-            container.removeEventListener('click', tapHandler);
-            container.removeEventListener('touchend', tapHandler);
+            debugLog('Tap-to-play: play started');
+            overlay.removeEventListener('click', tapHandler);
+            overlay.removeEventListener('touchstart', tapHandler);
         }).catch(function(err) {
             debugLog('Tap-to-play failed: ' + err.message);
-            // Muted dene
-            video.muted = true;
-            video.play().then(function() {
-                debugLog('Tap-to-play muted: success');
-                container.removeEventListener('click', tapHandler);
-                container.removeEventListener('touchend', tapHandler);
-                showToast('🔇', 'Sessiz oynatılıyor, sesi açmak için 🔊 basın');
-            }).catch(function(){});
+        });
+    };
+
+    overlay.addEventListener('click', handler);
+    overlay.addEventListener('touchstart', handler, { passive: true });
+
+    // Also try playing muted first (Android often allows muted autoplay)
+    if (platformInfo.isAndroid) {
+        var wasMuted = video.muted;
+        video.muted = true;
+        video.play().then(function() {
+            debugLog('Muted autoplay worked, unmuting after delay');
+            setTimeout(function() {
+                video.muted = wasMuted;
+                overlay.removeEventListener('click', handler);
+                overlay.removeEventListener('touchstart', handler);
+            }, 500);
+        }).catch(function() {
+            video.muted = wasMuted;
+            debugLog('Even muted autoplay failed');
         });
     }
-
-    container.addEventListener('click', tapHandler);
-    container.addEventListener('touchend', tapHandler, { passive: true });
 }
 
-// ==========================================
-// VIDEO EVENT HANDLERS
-// ==========================================
-function setupVideoEvents(video, ch, strategyIndex, extraTimeout) {
+function setupVideoEvents(video, ch) {
     video.onplaying = function() {
         debugLog('Event: playing');
         document.getElementById('bufferingSpinner').style.display = 'none';
@@ -1126,7 +889,7 @@ function setupVideoEvents(video, ch, strategyIndex, extraTimeout) {
     };
 
     video.oncanplay = function() {
-        debugLog('Event: canplay readyState=' + video.readyState);
+        debugLog('Event: canplay');
     };
 
     video.oncanplaythrough = function() {
@@ -1135,13 +898,14 @@ function setupVideoEvents(video, ch, strategyIndex, extraTimeout) {
     };
 
     video.onloadedmetadata = function() {
-        debugLog('Event: loadedmetadata ' + video.videoWidth + 'x' + video.videoHeight + ' dur=' + video.duration);
+        debugLog('Event: loadedmetadata ' + video.videoWidth + 'x' + video.videoHeight);
     };
 
     video.onloadeddata = function() {
         debugLog('Event: loadeddata');
+        // Try play again when data is loaded (helps on Android)
         if (video.paused && !isPlaying) {
-            video.play().catch(function(){});
+            video.play().catch(function() {});
         }
     };
 
@@ -1149,92 +913,52 @@ function setupVideoEvents(video, ch, strategyIndex, extraTimeout) {
         debugLog('Event: stalled');
     };
 
-    video.onemptied = function() {
-        debugLog('Event: emptied');
-    };
-
     video.onerror = function(e) {
         var err = video.error;
         var msg = err ? ('code=' + err.code + ' msg=' + (err.message || 'unknown')) : 'unknown';
         debugLog('Event: error - ' + msg);
+        document.getElementById('bufferingSpinner').style.display = 'none';
+        currentPlayingUrl = '';
 
-        if (extraTimeout) clearTimeout(extraTimeout);
+        if (stallChecker) { clearInterval(stallChecker); stallChecker = null; }
+        if (resolutionChecker) { clearInterval(resolutionChecker); resolutionChecker = null; }
 
-        // error code 4 = MEDIA_ERR_SRC_NOT_SUPPORTED
-        // error code 2 = MEDIA_ERR_NETWORK
-        // error code 3 = MEDIA_ERR_DECODE
-        if (err && (err.code === 4 || err.code === 2 || err.code === 3)) {
-            debugLog('Video error, trying next strategy from #' + strategyIndex);
-            destroyAllPlayers();
-            nextStrategy(video, ch.url, ch, strategyIndex);
-        } else {
-            document.getElementById('bufferingSpinner').style.display = 'none';
-            showToast('❌', 'Kanal yüklenemedi');
-            showBg();
-            currentPlayingUrl = '';
+        // On Android, if native fails, try HLS.js
+        if (!hlsInstance && platformInfo.hlsJsSupported && err && err.code !== 4) {
+            debugLog('Native error, trying HLS.js fallback');
+            currentPlayingUrl = ch.url;
+            playWithHlsJs(video, ch.url, ch);
+            return;
         }
-    };
 
-    video.onended = function() {
-        debugLog('Event: ended (live stream ended?)');
-        // Canlı yayın bitti, yeniden başlat
-        setTimeout(() => {
-            if (currentPlayingUrl === ch.url) {
-                debugLog('Restarting ended stream');
-                currentPlayingUrl = '';
-                playChannel(focusedChannelIndex);
-            }
-        }, 3000);
+        showToast('❌', 'Bu kanal oynatılamıyor');
+        showBg();
     };
 }
 
-// ==========================================
-// STALL CHECKER - Donma tespiti
-// ==========================================
-function setupStallChecker(video, ch, strategyIndex) {
-    if (stallChecker) clearInterval(stallChecker);
-
-    let lastTime = -1, stallCount = 0, totalStalls = 0;
-
+function setupStallChecker(video) {
+    let lastT = -1, sc = 0;
     stallChecker = setInterval(function() {
         if (video.paused || video.ended || !isPlaying) return;
-
-        if (video.currentTime === lastTime && video.readyState >= 2) {
-            stallCount++;
-            if (stallCount >= 2 && stallCount < 5) {
-                debugLog('Stall #' + stallCount + ' at t=' + video.currentTime.toFixed(1));
-                // Hafif ileri sar
+        if (video.currentTime === lastT && video.readyState >= 2) {
+            sc++;
+            if (sc >= 2) {
+                debugLog('Stall detected, attempting recovery');
                 var b = video.buffered;
-                if (b.length > 0) {
-                    var buffEnd = b.end(b.length - 1);
-                    if (buffEnd > video.currentTime + 1) {
-                        video.currentTime = video.currentTime + 0.5;
-                    }
+                if (b.length > 0 && b.end(b.length - 1) > video.currentTime + 0.5) {
+                    video.currentTime += 0.2;
+                } else if (hlsInstance) {
+                    hlsInstance.startLoad();
                 }
-                // HLS.js varsa tekrar yükle
-                if (hlsInstance) {
-                    try { hlsInstance.startLoad(video.currentTime); } catch(e){}
-                }
-            } else if (stallCount >= 5) {
-                totalStalls++;
-                stallCount = 0;
-                if (totalStalls >= 3) {
-                    debugLog('Too many stalls, restarting stream');
-                    totalStalls = 0;
-                    currentPlayingUrl = '';
-                    playChannel(focusedChannelIndex);
-                }
+                sc = 0;
             }
         } else {
-            stallCount = 0;
+            sc = 0;
         }
-        lastTime = video.currentTime;
+        lastT = video.currentTime;
     }, 3000);
 }
 
-// ==========================================
-// CHANNEL INFO BAR
-// ==========================================
 function showChannelInfoBar(ch){
     document.getElementById('infoBarNumber').textContent=ch.number;
     document.getElementById('infoBarName').textContent=ch.name;
