@@ -118,7 +118,6 @@
         .number-hint{font-size:12px;color:var(--text-dim);margin-top:4px}
         #mobileMenuBtn{display:none;position:fixed;top:15px;left:15px;z-index:900;width:44px;height:44px;border-radius:12px;background:rgba(10,10,26,.9);border:1px solid var(--border);color:var(--text);font-size:20px;cursor:pointer;align-items:center;justify-content:center;backdrop-filter:blur(10px)}
 
-        /* Debug panel for Android troubleshooting */
         #debugPanel{position:fixed;bottom:10px;left:10px;background:rgba(0,0,0,.9);color:#0f0;font-family:monospace;font-size:10px;padding:8px;border-radius:6px;z-index:99999;max-width:300px;max-height:200px;overflow-y:auto;display:none;word-wrap:break-word;line-height:1.4}
         #debugPanel.visible{display:block}
 
@@ -306,8 +305,21 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js"></script>
 <script>
+(function(){
+'use strict';
+
 const M3U_URL='https://raw.githubusercontent.com/kadirsener1/avva1/refs/heads/main/playlist.m3u';
 const AUTO_REFRESH=30*60*1000;
+
+// ---- CORS PROXY LIST (tried in order) ----
+const CORS_PROXIES = [
+    'https://api.allorigins.win/raw?url=',
+    'https://corsproxy.io/?',
+    'https://api.codetabs.com/v1/proxy?quest=',
+    'https://cors-anywhere.herokuapp.com/',
+    'https://proxy.cors.sh/'
+];
+
 let channels=[],filteredChannels=[],categories=[],allCategoryNames=[];
 let currentCategory='all',currentChannelIndex=-1,focusedChannelIndex=0;
 let sidebarVisible=false,catSidebarVisible=false,isPlaying=false;
@@ -317,161 +329,95 @@ let focusedCategoryIndex=0;
 let currentResolution='',stallChecker=null,resolutionChecker=null;
 let currentPlayingUrl='';
 let focusMode='none';
+let currentProxyIndex=0;
+let playAttemptCount=0;
+let maxPlayAttempts=4;
 
-// ==========================================
-// PLATFORM DETECTION
-// ==========================================
-const platformInfo = {
-    isAndroid: /Android/i.test(navigator.userAgent),
-    isAndroidWebView: /wv\)/.test(navigator.userAgent) || /Android.*Version\/\d/.test(navigator.userAgent),
-    isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent),
-    isSafari: /^((?!chrome|android).)*safari/i.test(navigator.userAgent),
-    hasNativeHLS: (function(){
-        var v = document.createElement('video');
-        return !!(v.canPlayType('application/vnd.apple.mpegurl') || v.canPlayType('application/x-mpegURL'));
-    })(),
-    hasMSE: typeof MediaSource !== 'undefined' && typeof MediaSource.isTypeSupported === 'function',
-    hlsJsSupported: typeof Hls !== 'undefined' ? Hls.isSupported() : false
-};
+// ---- PLATFORM DETECTION ----
+const platformInfo = (function(){
+    const ua=navigator.userAgent;
+    const v=document.createElement('video');
+    const hasNativeHLS=!!(v.canPlayType('application/vnd.apple.mpegurl')||v.canPlayType('application/x-mpegURL'));
+    const hasMSE=typeof MediaSource!=='undefined'&&typeof MediaSource.isTypeSupported==='function';
+    const hlsJsSupported=typeof Hls!=='undefined'?Hls.isSupported():false;
+    return {
+        isAndroid:/Android/i.test(ua),
+        isAndroidWebView:/wv\)/i.test(ua)||/Android.*Version\/\d/i.test(ua),
+        isIOS:/iPad|iPhone|iPod/.test(ua),
+        isSafari:/^((?!chrome|android).)*safari/i.test(ua),
+        isSmartTV:/SmartTV|SMART-TV|WebOS|Tizen|FireTV|Roku/i.test(ua),
+        hasNativeHLS:hasNativeHLS,
+        hasMSE:hasMSE,
+        hlsJsSupported:hlsJsSupported,
+        pageIsHTTPS:location.protocol==='https:',
+        ua:ua
+    };
+})();
 
-// ==========================================
-// DEBUG LOGGING
-// ==========================================
-let debugLines = [];
-function debugLog(msg) {
-    const ts = new Date().toLocaleTimeString();
-    const line = `[${ts}] ${msg}`;
+// ---- DEBUG LOGGING ----
+let debugLines=[];
+function debugLog(msg){
+    const ts=new Date().toLocaleTimeString();
+    const line='['+ts+'] '+msg;
     debugLines.push(line);
-    if (debugLines.length > 50) debugLines.shift();
-    const dp = document.getElementById('debugPanel');
-    if (dp) dp.innerHTML = debugLines.join('<br>');
-    console.log('[SENTV]', msg);
+    if(debugLines.length>60)debugLines.shift();
+    const dp=document.getElementById('debugPanel');
+    if(dp)dp.innerHTML=debugLines.join('<br>');
+    console.log('[SENTV]',msg);
 }
-
-// Triple-tap to toggle debug panel
-let debugTapCount = 0, debugTapTimer = null;
-document.addEventListener('click', function(e) {
-    // Only count taps in top-right corner
-    if (e.clientX > window.innerWidth - 80 && e.clientY < 80) {
+let debugTapCount=0,debugTapTimer=null;
+document.addEventListener('click',function(e){
+    if(e.clientX>window.innerWidth-80&&e.clientY<80){
         debugTapCount++;
         clearTimeout(debugTapTimer);
-        debugTapTimer = setTimeout(() => { debugTapCount = 0; }, 600);
-        if (debugTapCount >= 3) {
-            debugTapCount = 0;
-            document.getElementById('debugPanel').classList.toggle('visible');
-        }
+        debugTapTimer=setTimeout(function(){debugTapCount=0;},600);
+        if(debugTapCount>=3){debugTapCount=0;document.getElementById('debugPanel').classList.toggle('visible');}
     }
 });
 
+// ---- HELPERS ----
 function showBg(){var b=document.getElementById('videoBg');b.classList.remove('playing');b.style.opacity='1';}
 function hideBg(){var b=document.getElementById('videoBg');b.classList.add('playing');b.style.opacity='0';}
-
-document.addEventListener('DOMContentLoaded',async()=>{
-    debugLog('Platform: ' + navigator.userAgent.substring(0, 80));
-    debugLog('Android=' + platformInfo.isAndroid + ' WebView=' + platformInfo.isAndroidWebView);
-    debugLog('NativeHLS=' + platformInfo.hasNativeHLS + ' MSE=' + platformInfo.hasMSE + ' HLS.js=' + platformInfo.hlsJsSupported);
-
-    var img=new Image();
-    img.src='https://raw.githubusercontent.com/kadirsener1/tvmyeni/refs/heads/main/bg.JPG';
-    await loadM3U(M3U_URL);
-    setTimeout(()=>{
-        document.getElementById('loadingScreen').classList.add('hide');
-        showCategorySidebar();
+function getResLabel(w,h){
+    if(h>=2160||w>=3840)return'4K UHD';
+    if(h>=1440||w>=2560)return'1440p QHD';
+    if(h>=1080||w>=1920)return'1080p FHD';
+    if(h>=720||w>=1280)return'720p HD';
+    if(h>=576)return'576p SD';
+    if(h>=480)return'480p SD';
+    if(h>=360)return'360p';
+    if(h>0)return h+'p';
+    return'';
+}
+function updateResDisplay(txt){
+    currentResolution=txt;
+    var el=document.getElementById('infoBarRes'),et=document.getElementById('infoBarResText');
+    if(txt){et.textContent=txt;el.style.display='flex';}
+    else{el.style.display='none';}
+    document.getElementById('nowPlayingRes').textContent=txt?'• '+txt:'';
+}
+function startResMonitor(){
+    if(resolutionChecker)clearInterval(resolutionChecker);
+    var v=document.getElementById('videoPlayer');
+    currentResolution='';updateResDisplay('');
+    resolutionChecker=setInterval(function(){
+        if(v.videoWidth>0&&v.videoHeight>0){
+            var w=v.videoWidth,h=v.videoHeight,l=getResLabel(w,h),nr=w+'×'+h+' '+l;
+            if(nr!==currentResolution)updateResDisplay(nr);
+        }
     },2000);
-    setupEventListeners();setupMouseEvents();setupTouchGestures();
-    setInterval(async()=>{const pi=currentChannelIndex;await loadM3U(M3U_URL);if(pi>=0&&pi<channels.length)currentChannelIndex=pi;},AUTO_REFRESH);
-});
-
-async function loadM3U(url){
-    try{const r=await fetch(url);if(!r.ok)throw 0;channels=parseM3U(await r.text());debugLog('M3U loaded direct: '+channels.length+' ch');}
-    catch(e){try{const r=await fetch('https://api.allorigins.win/raw?url='+encodeURIComponent(url));channels=parseM3U(await r.text());debugLog('M3U loaded proxy: '+channels.length+' ch');}catch(e2){channels=[];showToast('❌','M3U yüklenemedi');debugLog('M3U FAIL: '+e2);return;}}
-    channels.forEach((c,i)=>{c.index=i;c.number=i+1;});
-    extractCategories();filterChannels();forceRebuildList();
-    showToast('✅',`${channels.length} kanal yüklendi`);
+}
+function showToast(i,m){
+    var t=document.getElementById('toast');
+    document.getElementById('toastContent').innerHTML='<span>'+i+'</span> '+m;
+    t.style.display='block';
+    clearTimeout(t._t);
+    t._t=setTimeout(function(){t.style.display='none';},3000);
 }
 
-function parseM3U(t){
-    const lines=t.split('\n'),p=[];let c=null;
-    for(let i=0;i<lines.length;i++){const l=lines[i].trim();
-        if(l.startsWith('#EXTINF:')){c={};const nm=l.match(/tvg-name="([^"]*)"/),lg=l.match(/tvg-logo="([^"]*)"/),gr=l.match(/group-title="([^"]*)"/),tl=l.match(/,(.+)$/);c.name=nm?nm[1]:(tl?tl[1].trim():'Bilinmeyen');c.logo=lg?lg[1]:'';c.group=gr?gr[1]:'Diğer';if(!c.name&&tl)c.name=tl[1].trim();}
-        else if(l&&!l.startsWith('#')&&c){c.url=l;if(c.name&&c.url)p.push(c);c=null;}}
-    return p;
-}
-
-function extractCategories(){
-    const s=new Set();channels.forEach(c=>{if(c.group)s.add(c.group);});
-    categories=Array.from(s);
-    allCategoryNames=['all',...categories];
-    renderCatList();
-}
-
-function renderCatList(){
-    const container=document.getElementById('catList');
-    let h='';
-    h+=`<div class="cat-item${currentCategory==='all'?' active':''}${focusMode==='categories'&&focusedCategoryIndex===0?' focused':''}" data-catidx="0" onclick="selectCategoryFromList('all')">
-        <span class="cat-item-name">📺 Tümü</span>
-        <span class="cat-item-count">${channels.length}</span>
-    </div>`;
-    categories.forEach((cat,i)=>{
-        const cnt=channels.filter(c=>c.group===cat).length;
-        const ci=i+1;
-        h+=`<div class="cat-item${currentCategory===cat?' active':''}${focusMode==='categories'&&focusedCategoryIndex===ci?' focused':''}" data-catidx="${ci}" onclick="selectCategoryFromList('${cat.replace(/'/g,"\\'")}')">
-            <span class="cat-item-name">${cat}</span>
-            <span class="cat-item-count">${cnt}</span>
-        </div>`;
-    });
-    container.innerHTML=h;
-    if(focusMode==='categories'){
-        const focused=container.querySelector('.cat-item.focused');
-        if(focused)focused.scrollIntoView({behavior:'smooth',block:'nearest'});
-    }
-}
-
-function selectCategoryFromList(cat){
-    currentCategory=cat;
-    focusedCategoryIndex=allCategoryNames.indexOf(cat);
-    if(focusedCategoryIndex===-1)focusedCategoryIndex=0;
-    filterChannels();
-    focusedChannelIndex=0;
-    updateCatLabel();
-    renderCatList();
-    hideCategorySidebar();
-    showSidebar();
-    forceRebuildList();
-    showToast('📂',cat==='all'?'Tümü':cat);
-}
-
-function updateCatLabel(){
-    const label=document.getElementById('sidebarCatLabel');
-    const name=currentCategory==='all'?'Tümü':currentCategory;
-    label.innerHTML=`📂 ${name} <span class="back-hint">◄ Kategoriler</span>`;
-}
-
-function filterChannels(){filteredChannels=channels.filter(c=>currentCategory==='all'||c.group===currentCategory);document.getElementById('channelCount').textContent=`${filteredChannels.length} kanal`;}
-function getListHash(){return currentCategory+'|'+filteredChannels.length+'|'+currentChannelIndex;}
-function forceRebuildList(){document.getElementById('channelList').dataset.listHash='';renderChannelList();}
-function renderChannelList(){
-    const container=document.getElementById('channelList');
-    if(!filteredChannels.length){container.innerHTML=`<div style="text-align:center;padding:40px;color:var(--text-dim)"><div style="font-size:40px;margin-bottom:12px">📭</div><div>Kanal bulunamadı</div></div>`;container.dataset.listHash=getListHash();return;}
-    const hash=getListHash();
-    if(container.dataset.listHash!==hash){let h='';
-        filteredChannels.forEach((ch,i)=>{const isA=currentChannelIndex===ch.index,isF=focusedChannelIndex===i&&sidebarVisible&&focusMode==='channels';const logo=ch.logo?`<img src="${ch.logo}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='📺'">`:'📺';
-            h+=`<div class="channel-item${isA?' active':''}${isF?' focused':''}" data-idx="${i}" onclick="playChannel(${i})" id="ch-${i}"><div class="channel-num">${ch.number}</div><div class="channel-logo">${logo}</div><div class="channel-info"><div class="channel-name">${ch.name}</div><div class="channel-group">${ch.group||''}</div></div></div>`;});
-        container.innerHTML=h;container.dataset.listHash=hash;}else updateFocusUI();
-}
-function updateFocusUI(){
-    const container=document.getElementById('channelList'),items=container.children;
-    for(let i=0;i<items.length;i++){const el=items[i];if(!el.dataset||el.dataset.idx===undefined)continue;const idx=parseInt(el.dataset.idx),ch=filteredChannels[idx];if(!ch)continue;
-        const wA=currentChannelIndex===ch.index,wF=idx===focusedChannelIndex&&sidebarVisible&&focusMode==='channels';
-        if(el.classList.contains('active')!==wA)el.classList.toggle('active',wA);if(el.classList.contains('focused')!==wF)el.classList.toggle('focused',wF);}
-    if(focusMode==='channels'&&sidebarVisible){const fe=document.getElementById(`ch-${focusedChannelIndex}`);if(fe){const lE=container,eT=fe.offsetTop-lE.offsetTop,eH=fe.offsetHeight,lH=lE.clientHeight,sT=lE.scrollTop;if(eT<sT)lE.scrollTop=eT;else if(eT+eH>sT+lH)lE.scrollTop=eT+eH-lH;}}
-}
-function getResLabel(w,h){if(h>=2160||w>=3840)return'4K UHD';if(h>=1440||w>=2560)return'1440p QHD';if(h>=1080||w>=1920)return'1080p FHD';if(h>=720||w>=1280)return'720p HD';if(h>=576)return'576p SD';if(h>=480)return'480p SD';if(h>=360)return'360p';if(h>0)return h+'p';return'';}
-function updateResDisplay(txt){currentResolution=txt;const el=document.getElementById('infoBarRes'),et=document.getElementById('infoBarResText');if(txt){et.textContent=txt;el.style.display='flex';}else{el.style.display='none';}document.getElementById('nowPlayingRes').textContent=txt?`• ${txt}`:'';}
-function startResMonitor(){if(resolutionChecker)clearInterval(resolutionChecker);const v=document.getElementById('videoPlayer');currentResolution='';updateResDisplay('');resolutionChecker=setInterval(()=>{if(v.videoWidth>0&&v.videoHeight>0){const w=v.videoWidth,h=v.videoHeight,l=getResLabel(w,h),nr=`${w}×${h} ${l}`;if(nr!==currentResolution)updateResDisplay(nr);}},2000);}
-
+// ---- SIDEBAR LOGIC ----
 function showSidebar(){
-    const s=document.getElementById('sidebar');
+    var s=document.getElementById('sidebar');
     s.classList.remove('hidden');
     sidebarVisible=true;
     focusMode='channels';
@@ -485,7 +431,7 @@ function hideSidebar(){
 }
 function showCategorySidebar(){
     hideSidebar();
-    const cs=document.getElementById('categorySidebar');
+    var cs=document.getElementById('categorySidebar');
     cs.classList.remove('hidden');
     catSidebarVisible=true;
     focusMode='categories';
@@ -498,521 +444,772 @@ function hideCategorySidebar(){
     catSidebarVisible=false;
     if(!sidebarVisible)focusMode='none';
 }
-function hideAllSidebars(){
-    hideSidebar();hideCategorySidebar();focusMode='none';
-}
+function hideAllSidebars(){hideSidebar();hideCategorySidebar();focusMode='none';}
 function toggleSidebar(){
     if(sidebarVisible||catSidebarVisible){hideAllSidebars();}
     else{showCategorySidebar();}
 }
+function updateCatLabel(){
+    var label=document.getElementById('sidebarCatLabel');
+    var name=currentCategory==='all'?'Tümü':currentCategory;
+    label.innerHTML='📂 '+name+' <span class="back-hint">◄ Kategoriler</span>';
+}
+function filterChannels(){
+    filteredChannels=channels.filter(function(c){return currentCategory==='all'||c.group===currentCategory;});
+    document.getElementById('channelCount').textContent=filteredChannels.length+' kanal';
+}
+function getListHash(){return currentCategory+'|'+filteredChannels.length+'|'+currentChannelIndex;}
+function forceRebuildList(){document.getElementById('channelList').dataset.listHash='';renderChannelList();}
 
-// ==========================================
-// RESOLVE PROXY URL - Pre-resolve redirect for Android
-// ==========================================
-async function resolveStreamUrl(url) {
-    // If the URL contains a proxy/resolve endpoint, pre-fetch to get final URL
-    // This helps Android WebView which may not follow redirects well for media
-    if (url.includes('/resolve?') || url.includes('vavooproxy')) {
-        debugLog('Pre-resolving proxy URL...');
-        try {
-            // First try: fetch with redirect:follow to get final URL
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 10000);
-            
-            const resp = await fetch(url, {
-                method: 'GET',
-                redirect: 'follow',
-                signal: controller.signal,
-                headers: {
-                    'Accept': '*/*'
-                }
-            });
-            clearTimeout(timeout);
-            
-            if (resp.ok || resp.status === 200) {
-                // Check if response itself is a redirect URL or a playlist
-                const contentType = resp.headers.get('content-type') || '';
-                const finalUrl = resp.url; // The URL after redirects
-                
-                debugLog('Resolved URL: ' + finalUrl.substring(0, 80));
-                debugLog('Content-Type: ' + contentType);
-                
-                // If the final URL is different from original, use it
-                if (finalUrl !== url && finalUrl.length > 10) {
-                    return finalUrl;
-                }
-                
-                // If response is a URL text
-                const text = await resp.text();
-                if (text && text.trim().startsWith('http') && text.trim().indexOf('\n') === -1) {
-                    debugLog('Got redirect URL from body: ' + text.trim().substring(0, 80));
-                    return text.trim();
-                }
-                
-                // If it's an m3u8 playlist content, create a blob URL
-                if (text && (text.includes('#EXTM3U') || text.includes('#EXT-X-'))) {
-                    debugLog('Got m3u8 playlist content, creating blob');
-                    const blob = new Blob([text], { type: 'application/vnd.apple.mpegurl' });
-                    return URL.createObjectURL(blob);
-                }
-                
-                return finalUrl;
-            } else {
-                debugLog('Resolve HTTP error: ' + resp.status);
-            }
-        } catch(e) {
-            debugLog('Resolve error: ' + e.message);
+// ---- RENDER ----
+function renderCatList(){
+    var container=document.getElementById('catList');
+    var h='';
+    h+='<div class="cat-item'+(currentCategory==='all'?' active':'')+(focusMode==='categories'&&focusedCategoryIndex===0?' focused':'')+'" data-catidx="0" onclick="selectCategoryFromList(\'all\')"><span class="cat-item-name">📺 Tümü</span><span class="cat-item-count">'+channels.length+'</span></div>';
+    categories.forEach(function(cat,i){
+        var cnt=channels.filter(function(c){return c.group===cat;}).length;
+        var ci=i+1;
+        h+='<div class="cat-item'+(currentCategory===cat?' active':'')+(focusMode==='categories'&&focusedCategoryIndex===ci?' focused':'')+'" data-catidx="'+ci+'" onclick="selectCategoryFromList(\''+cat.replace(/'/g,"\\'")+'\')"><span class="cat-item-name">'+cat+'</span><span class="cat-item-count">'+cnt+'</span></div>';
+    });
+    container.innerHTML=h;
+    if(focusMode==='categories'){
+        var focused=container.querySelector('.cat-item.focused');
+        if(focused)focused.scrollIntoView({behavior:'smooth',block:'nearest'});
+    }
+}
+function selectCategoryFromList(cat){
+    currentCategory=cat;
+    focusedCategoryIndex=allCategoryNames.indexOf(cat);
+    if(focusedCategoryIndex===-1)focusedCategoryIndex=0;
+    filterChannels();
+    focusedChannelIndex=0;
+    updateCatLabel();
+    renderCatList();
+    hideCategorySidebar();
+    showSidebar();
+    forceRebuildList();
+    showToast('📂',cat==='all'?'Tümü':cat);
+}
+function renderChannelList(){
+    var container=document.getElementById('channelList');
+    if(!filteredChannels.length){
+        container.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-dim)"><div style="font-size:40px;margin-bottom:12px">📭</div><div>Kanal bulunamadı</div></div>';
+        container.dataset.listHash=getListHash();
+        return;
+    }
+    var hash=getListHash();
+    if(container.dataset.listHash!==hash){
+        var h='';
+        filteredChannels.forEach(function(ch,i){
+            var isA=currentChannelIndex===ch.index,isF=focusedChannelIndex===i&&sidebarVisible&&focusMode==='channels';
+            var logo=ch.logo?'<img src="'+ch.logo+'" alt="" loading="lazy" onerror="this.parentElement.innerHTML=\'📺\'">':'📺';
+            h+='<div class="channel-item'+(isA?' active':'')+(isF?' focused':'')+'" data-idx="'+i+'" onclick="playChannel('+i+')" id="ch-'+i+'"><div class="channel-num">'+ch.number+'</div><div class="channel-logo">'+logo+'</div><div class="channel-info"><div class="channel-name">'+ch.name+'</div><div class="channel-group">'+(ch.group||'')+'</div></div></div>';
+        });
+        container.innerHTML=h;
+        container.dataset.listHash=hash;
+    }else{updateFocusUI();}
+}
+function updateFocusUI(){
+    var container=document.getElementById('channelList'),items=container.children;
+    for(var i=0;i<items.length;i++){
+        var el=items[i];
+        if(!el.dataset||el.dataset.idx===undefined)continue;
+        var idx=parseInt(el.dataset.idx),ch=filteredChannels[idx];
+        if(!ch)continue;
+        var wA=currentChannelIndex===ch.index,wF=idx===focusedChannelIndex&&sidebarVisible&&focusMode==='channels';
+        if(el.classList.contains('active')!==wA)el.classList.toggle('active',wA);
+        if(el.classList.contains('focused')!==wF)el.classList.toggle('focused',wF);
+    }
+    if(focusMode==='channels'&&sidebarVisible){
+        var fe=document.getElementById('ch-'+focusedChannelIndex);
+        if(fe){
+            var lE=container,eT=fe.offsetTop-lE.offsetTop,eH=fe.offsetHeight,lH=lE.clientHeight,sT=lE.scrollTop;
+            if(eT<sT)lE.scrollTop=eT;
+            else if(eT+eH>sT+lH)lE.scrollTop=eT+eH-lH;
         }
+    }
+}
+
+// ---- M3U PARSING ----
+function parseM3U(t){
+    var lines=t.split('\n'),p=[];
+    var c=null;
+    for(var i=0;i<lines.length;i++){
+        var l=lines[i].trim();
+        if(l.startsWith('#EXTINF:')){
+            c={};
+            var nm=l.match(/tvg-name="([^"]*)"/);
+            var lg=l.match(/tvg-logo="([^"]*)"/);
+            var gr=l.match(/group-title="([^"]*)"/);
+            var tl=l.match(/,(.+)$/);
+            c.name=nm?nm[1]:(tl?tl[1].trim():'Bilinmeyen');
+            c.logo=lg?lg[1]:'';
+            c.group=gr?gr[1]:'Diğer';
+            if(!c.name&&tl)c.name=tl[1].trim();
+            // Ayrıca #KOD ve #EXTVLCOPT gibi etiketleri de yakala
+            var kod=l.match(/tvg-ID="([^"]*)"/);
+            if(kod)c.tvgId=kod[1];
+        }else if(l&&!l.startsWith('#')&&c){
+            c.url=l;
+            if(c.name&&c.url)p.push(c);
+            c=null;
+        }
+    }
+    return p;
+}
+function extractCategories(){
+    var s=new Set();
+    channels.forEach(function(c){if(c.group)s.add(c.group);});
+    categories=Array.from(s);
+    allCategoryNames=['all'].concat(categories);
+    renderCatList();
+}
+async function loadM3U(url){
+    var text='';
+    try{
+        var r=await fetch(url,{cache:'no-cache'});
+        if(!r.ok)throw 0;
+        text=await r.text();
+        debugLog('M3U direct: OK');
+    }catch(e){
+        debugLog('M3U direct failed, trying proxies...');
+        for(var i=0;i<CORS_PROXIES.length;i++){
+            try{
+                var pr=await fetch(CORS_PROXIES[i]+encodeURIComponent(url),{cache:'no-cache'});
+                if(pr.ok){text=await pr.text();debugLog('M3U proxy['+i+']: OK');break;}
+            }catch(e2){debugLog('M3U proxy['+i+']: FAIL');}
+        }
+    }
+    if(!text){channels=[];showToast('❌','M3U yüklenemedi');debugLog('M3U ALL FAIL');return;}
+    channels=parseM3U(text);
+    channels.forEach(function(c,i){c.index=i;c.number=i+1;});
+    extractCategories();filterChannels();forceRebuildList();
+    showToast('✅',channels.length+' kanal yüklendi');
+    debugLog('Total channels: '+channels.length);
+}
+
+// ---- URL RESOLUTION ----
+function tryUpgradeHttps(url){
+    if(url.startsWith('http://')){
+        return url.replace('http://','https://');
     }
     return url;
 }
+function isHlsUrl(url){
+    return /\.m3u8/i.test(url)||/m3u8/i.test(url)||/\/play\//i.test(url)||/\/hls\//i.test(url)||/\/live\//i.test(url);
+}
+function isMixedContent(url){
+    return platformInfo.pageIsHTTPS&&url.startsWith('http://');
+}
 
-// ==========================================
-// MAIN PLAY FUNCTION - Android Compatible
-// ==========================================
+// ---- STREAM URL FETCH VIA PROXY ----
+async function fetchViaProxy(url,proxyIndex){
+    if(proxyIndex>=CORS_PROXIES.length)return null;
+    var proxyUrl=CORS_PROXIES[proxyIndex]+encodeURIComponent(url);
+    try{
+        var controller=new AbortController();
+        var timeout=setTimeout(function(){controller.abort();},12000);
+        var r=await fetch(proxyUrl,{signal:controller.signal,cache:'no-cache'});
+        clearTimeout(timeout);
+        if(!r.ok)return null;
+        var text=await r.text();
+        return{text:text,finalUrl:r.url,contentType:r.headers.get('content-type')||''};
+    }catch(e){return null;}
+}
+
+// ---- CREATE BLOB URL WITH CORRECT BASE ----
+function createBlobUrlWithBase(manifestText,baseUrl){
+    // Rewrite relative URIs in m3u8 to absolute
+    var lines=manifestText.split('\n');
+    var rewritten=[];
+    for(var i=0;i<lines.length;i++){
+        var line=lines[i];
+        if(line&&!line.startsWith('#')&&!line.startsWith('http')){
+            // Relative URI, make absolute
+            try{line=new URL(line,baseUrl).href;}catch(e){}
+        }
+        rewritten.push(line);
+    }
+    var blob=new Blob([rewritten.join('\n')],{type:'application/vnd.apple.mpegurl'});
+    return URL.createObjectURL(blob);
+}
+
+// ---- MAIN PLAY FUNCTION ----
 async function playChannel(fi){
-    const ch=filteredChannels[fi];if(!ch)return;
+    var ch=filteredChannels[fi];
+    if(!ch)return;
 
-    if(ch.url===currentPlayingUrl){
+    debugLog('=== playChannel: '+ch.name+' ===');
+    debugLog('URL: '+ch.url.substring(0,100));
+
+    if(ch.url===currentPlayingUrl&&isPlaying){
         hideAllSidebars();
         showChannelInfoBar(ch);
         return;
     }
 
-    currentChannelIndex=ch.index;focusedChannelIndex=fi;currentPlayingUrl=ch.url;
-    const video=document.getElementById('videoPlayer');
-    let url=ch.url;
+    currentChannelIndex=ch.index;
+    focusedChannelIndex=fi;
+    currentPlayingUrl=ch.url;
+    playAttemptCount=0;
+    currentProxyIndex=0;
 
-    debugLog('--- Playing: ' + ch.name);
-    debugLog('Original URL: ' + url.substring(0, 80));
+    var video=document.getElementById('videoPlayer');
 
-    // Cleanup previous instance
-    if(hlsInstance){hlsInstance.destroy();hlsInstance=null;}
-    if(stallChecker){clearInterval(stallChecker);stallChecker=null;}
-    if(resolutionChecker){clearInterval(resolutionChecker);resolutionChecker=null;}
+    // Tam temizlik
+    cleanupPlayback();
 
-    // Remove all source attributes and event handlers
-    video.pause();
     video.removeAttribute('src');
-    video.innerHTML = ''; // Remove any <source> elements
+    video.innerHTML='';
     video.load();
     updateResDisplay('');
-
     document.getElementById('welcomeScreen').style.display='none';
     document.getElementById('bufferingSpinner').style.display='block';
     showBg();
 
-    // Pre-resolve URL for Android
-    try {
-        url = await resolveStreamUrl(url);
-        debugLog('Final URL: ' + url.substring(0, 80));
-    } catch(e) {
-        debugLog('URL resolve failed, using original: ' + e.message);
-        url = ch.url;
+    var url=ch.url;
+    var resolvedUrl=url;
+
+    // Adım 1: HTTPS yükseltmeyi dene
+    if(isMixedContent(url)){
+        debugLog('Mixed content detected, trying HTTPS upgrade...');
+        var httpsUrl=tryUpgradeHttps(url);
+        var httpsOk=await testUrlReachable(httpsUrl);
+        if(httpsOk){
+            resolvedUrl=httpsUrl;
+            debugLog('HTTPS upgrade OK: '+httpsUrl.substring(0,80));
+        }else{
+            debugLog('HTTPS upgrade failed, will try proxy');
+        }
     }
 
-    const isHLS = /\.m3u8/i.test(url) || /m3u8/i.test(url) || url.includes('vavoo') || url.includes('/play/');
+    // Adım 2: Proxy üzerinden manifest çekmeyi dene (mixed content durumunda)
+    if(isMixedContent(resolvedUrl)&&resolvedUrl===url){
+        debugLog('Still mixed content, fetching manifest via proxy...');
+        for(var pi=0;pi<CORS_PROXIES.length;pi++){
+            var proxyResult=await fetchViaProxy(url,pi);
+            if(proxyResult&&proxyResult.text){
+                if(proxyResult.text.trim().startsWith('http')&&proxyResult.text.trim().indexOf('\n')===-1){
+                    // Proxy bir redirect URL döndü
+                    resolvedUrl=proxyResult.text.trim();
+                    debugLog('Proxy returned redirect: '+resolvedUrl.substring(0,80));
+                }else if(proxyResult.text.includes('#EXTM3U')||proxyResult.text.includes('#EXT-X-')){
+                    // Proxy manifest içeriği döndü, blob URL oluştur
+                    resolvedUrl=createBlobUrlWithBase(proxyResult.text,url);
+                    debugLog('Created blob URL from proxy manifest');
+                }else{
+                    resolvedUrl=proxyResult.finalUrl||url;
+                }
+                currentProxyIndex=pi;
+                debugLog('Proxy['+pi+'] success');
+                break;
+            }
+        }
+    }
 
-    debugLog('isHLS=' + isHLS + ' HLS.js=' + platformInfo.hlsJsSupported + ' NativeHLS=' + platformInfo.hasNativeHLS);
+    debugLog('Final resolved URL: '+resolvedUrl.substring(0,100));
 
-    // Strategy selection for Android
-    if (platformInfo.isAndroid && !platformInfo.hasMSE && platformInfo.hasNativeHLS) {
-        // Android WebView without MSE but with native HLS - use native
-        debugLog('Strategy: Android native HLS');
-        playNative(video, url, ch);
-    } else if (platformInfo.isAndroid && platformInfo.isAndroidWebView && !platformInfo.hlsJsSupported) {
-        // Old Android WebView - try native
-        debugLog('Strategy: Android WebView fallback native');
-        playNative(video, url, ch);
-    } else if (isHLS && platformInfo.hlsJsSupported) {
-        // HLS.js supported (most modern browsers including Android Chrome)
+    // Strateji seçimi
+    var isHLS=isHlsUrl(resolvedUrl);
+
+    if(isHLS&&platformInfo.hlsJsSupported){
         debugLog('Strategy: HLS.js');
-        playWithHlsJs(video, url, ch);
-    } else if (isHLS && platformInfo.hasNativeHLS) {
-        // Native HLS (Safari, iOS, some Android)
+        playWithHlsJs(video,resolvedUrl,ch);
+    }else if(isHLS&&platformInfo.hasNativeHLS){
         debugLog('Strategy: Native HLS');
-        playNative(video, url, ch);
-    } else {
-        // Direct playback (mp4, etc)
-        debugLog('Strategy: Direct');
-        playNative(video, url, ch);
+        playNative(video,resolvedUrl,ch);
+    }else if(isHLS&&!platformInfo.hasNativeHLS&&!platformInfo.hlsJsSupported){
+        debugLog('Strategy: HLS via proxy blob (no native, no hls.js)');
+        // Son çare: manifesti proxy'den al, blob yap, native'e ver
+        if(resolvedUrl.startsWith('blob:')){
+            playNative(video,resolvedUrl,ch);
+        }else{
+            var lastProxy=await fetchViaProxy(url,currentProxyIndex);
+            if(lastProxy&&lastProxy.text){
+                var blobUrl=createBlobUrlWithBase(lastProxy.text,url);
+                playNative(video,blobUrl,ch);
+            }else{
+                playNative(video,resolvedUrl,ch);
+            }
+        }
+    }else{
+        debugLog('Strategy: Direct/MP4');
+        playNative(video,resolvedUrl,ch);
     }
 
     startResMonitor();
     document.getElementById('nowPlayingText').textContent=ch.name;
     showChannelInfoBar(ch);
     forceRebuildList();
-    setTimeout(()=>hideAllSidebars(),400);
+    setTimeout(function(){hideAllSidebars();},400);
     showToast('▶️',ch.name);
 }
 
-function playWithHlsJs(video, url, ch) {
-    hlsInstance = new Hls({
-        maxBufferLength: 30,
-        maxMaxBufferLength: 60,
-        maxBufferSize: 60 * 1000 * 1000,
-        maxBufferHole: 0.5,
-        backBufferLength: 15,
-        manifestLoadingTimeOut: 20000,
-        manifestLoadingMaxRetry: 6,
-        manifestLoadingRetryDelay: 1000,
-        levelLoadingTimeOut: 20000,
-        levelLoadingMaxRetry: 6,
-        fragLoadingTimeOut: 30000,
-        fragLoadingMaxRetry: 8,
-        fragLoadingRetryDelay: 1000,
-        enableWorker: true,
-        lowLatencyMode: false,
-        startFragPrefetch: true,
-        progressive: true,
-        testBandwidth: true,
-        abrEwmaDefaultEstimate: 1000000, // Lower initial estimate for mobile
-        abrBandWidthFactor: 0.9,
-        abrBandWidthUpFactor: 0.7,
-        abrMaxWithRealBitrate: true,
-        liveSyncDurationCount: 3,
-        liveMaxLatencyDurationCount: 10,
-        liveDurationInfinity: true,
-        nudgeOffset: 0.1,
-        nudgeMaxRetry: 10,
-        startPosition: -1,
-        stretchShortVideoTrack: true,
-        forceKeyFrameOnDiscontinuity: true,
-        appendErrorMaxRetry: 5,
-        capLevelToPlayerSize: false,
-        highBufferWatchdogPeriod: 2,
-        // Android specific: try to use less aggressive settings
-        xhrSetup: function(xhr, url) {
-            xhr.timeout = 30000;
-        }
-    });
+// ---- TEST URL REACHABILITY ----
+async function testUrlReachable(url){
+    try{
+        var controller=new AbortController();
+        var timeout=setTimeout(function(){controller.abort();},6000);
+        var r=await fetch(url,{method:'HEAD',signal:controller.signal,cache:'no-cache',mode:'no-cors'});
+        clearTimeout(timeout);
+        return true;
+    }catch(e){
+        // no-cors modunda response okunamaz ama hata da alınmazsa ulaşılabilirdir
+        if(e.name==='AbortError')return false;
+        // no-cors'ta TypeError gelirse CORS hatasıdır ama URL ulaşılabilir olabilir
+        return e.name==='TypeError'?false:true;
+    }
+}
 
+// ---- HLS.JS PLAYBACK ----
+function playWithHlsJs(video,url,ch){
+    if(hlsInstance){hlsInstance.destroy();hlsInstance=null;}
+
+    // crossorigin ayarı - HLS.js için gerekli
+    video.setAttribute('crossorigin','anonymous');
+
+    var hlsConfig={
+        maxBufferLength:30,
+        maxMaxBufferLength:60,
+        maxBufferSize:60*1000*1000,
+        maxBufferHole:0.5,
+        backBufferLength:15,
+        manifestLoadingTimeOut:25000,
+        manifestLoadingMaxRetry:8,
+        manifestLoadingRetryDelay:800,
+        levelLoadingTimeOut:25000,
+        levelLoadingMaxRetry:8,
+        fragLoadingTimeOut:35000,
+        fragLoadingMaxRetry:12,
+        fragLoadingRetryDelay:800,
+        enableWorker:true,
+        lowLatencyMode:false,
+        startFragPrefetch:true,
+        progressive:true,
+        testBandwidth:true,
+        abrEwmaDefaultEstimate:platformInfo.isAndroid?500000:1000000,
+        abrBandWidthFactor:0.9,
+        abrBandWidthUpFactor:0.7,
+        abrMaxWithRealBitrate:true,
+        liveSyncDurationCount:3,
+        liveMaxLatencyDurationCount:10,
+        liveDurationInfinity:true,
+        nudgeOffset:0.1,
+        nudgeMaxRetry:10,
+        startPosition:-1,
+        stretchShortVideoTrack:true,
+        forceKeyFrameOnDiscontinuity:true,
+        appendErrorMaxRetry:8,
+        capLevelToPlayerSize:false,
+        highBufferWatchdogPeriod:2,
+        // ÖZEL XHR AYARI - En önemli kısım!
+        xhrSetup:function(xhr,requestUrl){
+            xhr.timeout=35000;
+            xhr.withCredentials=false;
+            // Referer ve Origin header'ları - birçok CDN bunları ister
+            try{
+                var urlObj=new URL(requestUrl);
+                var origin=urlObj.protocol+'//'+urlObj.hostname;
+                xhr.setRequestHeader('Origin',origin);
+                xhr.setRequestHeader('Referer',origin+'/');
+            }catch(e){}
+            // Bittv/OTT player için özel header
+            if(requestUrl.indexOf('bittv')>-1||requestUrl.indexOf('ottplayer')>-1){
+                xhr.setRequestHeader('Accept','*/*');
+                xhr.setRequestHeader('User-Agent',navigator.userAgent);
+            }
+            // Mixed content durumunda proxy'ye yönlendir (blob URL değilse)
+            if(isMixedContent(requestUrl)&&!requestUrl.startsWith('blob:')&&currentProxyIndex<CORS_PROXIES.length){
+                var proxyUrl=CORS_PROXIES[currentProxyIndex]+encodeURIComponent(requestUrl);
+                debugLog('HLS xhr: routing through proxy['+currentProxyIndex+']');
+                // Maalesef xhrSetup'ta URL değiştirilemez, bu yüzden
+                // manifest zaten proxy'den alınmış ve blob yapılmış olmalı
+            }
+        }
+    };
+
+    hlsInstance=new Hls(hlsConfig);
     hlsInstance.loadSource(url);
     hlsInstance.attachMedia(video);
 
-    hlsInstance.on(Hls.Events.MANIFEST_PARSED, function(event, data) {
-        debugLog('HLS manifest parsed, levels=' + data.levels.length);
-        attemptPlay(video, ch);
+    var errorCount=0;
+    var lastFatalTime=0;
+    var recoveryAttempts=0;
+
+    hlsInstance.on(Hls.Events.MANIFEST_PARSED,function(event,data){
+        debugLog('HLS manifest OK, levels='+data.levels.length);
+        attemptPlay(video,ch);
     });
 
-    hlsInstance.on(Hls.Events.FRAG_BUFFERED, function() {
-        document.getElementById('bufferingSpinner').style.display = 'none';
+    hlsInstance.on(Hls.Events.FRAG_BUFFERED,function(){
+        document.getElementById('bufferingSpinner').style.display='none';
+        recoveryAttempts=0;
     });
 
-    hlsInstance.on(Hls.Events.LEVEL_LOADED, function(event, data) {
-        debugLog('Level loaded, duration=' + (data.details.totalduration || 'live'));
+    hlsInstance.on(Hls.Events.LEVEL_LOADED,function(event,data){
+        debugLog('Level loaded, dur='+(data.details.totalduration||'live'));
     });
 
-    let errorCount = 0;
-    let lastFatalTime = 0;
+    hlsInstance.on(Hls.Events.ERROR,function(event,data){
+        debugLog('HLS err: '+data.type+'/'+data.details+' fatal='+data.fatal);
 
-    hlsInstance.on(Hls.Events.ERROR, function(event, data) {
-        debugLog('HLS error: ' + data.type + ' / ' + data.details + ' fatal=' + data.fatal);
-
-        if (data.fatal) {
-            const now = Date.now();
+        if(data.fatal){
+            var now=Date.now();
             errorCount++;
 
-            if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-                if (errorCount <= 5 && now - lastFatalTime > 2000) {
-                    lastFatalTime = now;
-                    showToast('🔄', 'Bağlantı sorunu, yeniden deneniyor...');
-                    setTimeout(() => {
-                        if (hlsInstance) {
-                            hlsInstance.startLoad();
-                        }
-                    }, 2000);
-                } else {
-                    // Too many errors, try native fallback on Android
-                    debugLog('Too many network errors, trying native fallback');
-                    showToast('🔄', 'Alternatif yöntem deneniyor...');
-                    if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
-                    playNative(video, url, ch);
+            if(data.type===Hls.ErrorTypes.NETWORK_ERROR){
+                if(errorCount<=6&&now-lastFatalTime>1500){
+                    lastFatalTime=now;
+                    showToast('🔄','Bağlantı sorunu, yeniden deneniyor... ('+errorCount+'/6)');
+                    setTimeout(function(){
+                        if(hlsInstance){hlsInstance.startLoad();}
+                    },1500*errorCount);
+                }else if(recoveryAttempts<2){
+                    recoveryAttempts++;
+                    debugLog('Network recovery failed, trying native fallback');
+                    showToast('🔄','Alternatif yöntem deneniyor...');
+                    var currentUrl=url;
+                    if(hlsInstance){hlsInstance.destroy();hlsInstance=null;}
+                    video.removeAttribute('crossorigin');
+                    playNative(video,currentUrl,ch);
+                }else{
+                    showToast('❌','Kanal yüklenemedi (ağ hatası)');
+                    document.getElementById('bufferingSpinner').style.display='none';
+                    showBg();
+                    currentPlayingUrl='';
                 }
-            } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-                if (errorCount <= 3) {
-                    debugLog('Recovering media error...');
+            }else if(data.type===Hls.ErrorTypes.MEDIA_ERROR){
+                if(errorCount<=4){
+                    debugLog('Media error, recovering...');
                     hlsInstance.recoverMediaError();
-                } else {
-                    debugLog('Media error recovery failed, trying native');
-                    if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
-                    playNative(video, url, ch);
+                }else{
+                    debugLog('Media recovery failed, trying native');
+                    var currentUrl2=url;
+                    if(hlsInstance){hlsInstance.destroy();hlsInstance=null;}
+                    video.removeAttribute('crossorigin');
+                    playNative(video,currentUrl2,ch);
                 }
-            } else {
-                showToast('❌', 'Kanal yüklenemedi');
-                document.getElementById('bufferingSpinner').style.display = 'none';
+            }else{
+                showToast('❌','Kanal yüklenemedi');
+                document.getElementById('bufferingSpinner').style.display='none';
                 showBg();
-                currentPlayingUrl = '';
+                currentPlayingUrl='';
             }
         }
 
         // Non-fatal stall recovery
-        if (data.details === 'bufferStalledError' && video.currentTime > 0) {
-            video.currentTime += 0.2;
+        if(data.details==='bufferStalledError'&&video.currentTime>0){
+            video.currentTime+=0.3;
         }
     });
 
-    setupVideoEvents(video, ch);
+    setupVideoEvents(video,ch);
     setupStallChecker(video);
 }
 
-function playNative(video, url, ch) {
-    debugLog('Native play: ' + url.substring(0, 60));
+// ---- NATIVE PLAYBACK ----
+function playNative(video,url,ch){
+    debugLog('Native play: '+url.substring(0,80));
+    video.removeAttribute('crossorigin');
+    video.innerHTML='';
+    video.src=url;
 
-    // For blob URLs or direct URLs
-    video.src = url;
-
-    // Also add as source element for better Android compatibility
-    // (some WebViews prefer <source> over src attribute)
-    video.innerHTML = '';
-    var source = document.createElement('source');
-    source.src = url;
-    if (url.includes('.m3u8') || url.includes('m3u8')) {
-        source.type = 'application/x-mpegURL';
-    } else if (url.includes('.mp4')) {
-        source.type = 'video/mp4';
+    // Android için source elementi de ekle
+    if(platformInfo.isAndroid){
+        var source=document.createElement('source');
+        source.src=url;
+        if(url.indexOf('.m3u8')>-1||url.indexOf('m3u8')>-1){
+            source.type='application/x-mpegURL';
+        }else if(url.indexOf('.mp4')>-1){
+            source.type='video/mp4';
+        }
+        video.appendChild(source);
     }
-    video.appendChild(source);
 
     video.load();
-    attemptPlay(video, ch);
-    setupVideoEvents(video, ch);
+    attemptPlay(video,ch);
+    setupVideoEvents(video,ch);
     setupStallChecker(video);
 }
 
-function attemptPlay(video, ch) {
-    // Multiple play attempts with increasing delays for Android
-    var playAttempt = function(attempt) {
-        if (attempt > 5) {
-            debugLog('All play attempts failed');
-            document.getElementById('bufferingSpinner').style.display = 'none';
-            showToast('⚠️', 'Oynatma başlatılamadı, ekrana dokunun');
-            // Set up tap-to-play
-            setupTapToPlay(video);
-            return;
+// ---- PLAY ATTEMPT WITH RETRY ----
+function attemptPlay(video,ch){
+    playAttemptCount++;
+    if(playAttemptCount>maxPlayAttempts){
+        debugLog('All play attempts exhausted');
+        document.getElementById('bufferingSpinner').style.display='none';
+        showToast('⚠️','Oynatma başlatılamadı, ekrana dokunun');
+        setupTapToPlay(video);
+        return;
+    }
+
+    debugLog('Play attempt #'+playAttemptCount);
+
+    // Android'de önce muted dene
+    if(platformInfo.isAndroid&&playAttemptCount===1){
+        var origMuted=video.muted;
+        video.muted=true;
+        var mp=video.play();
+        if(mp!==undefined){
+            mp.then(function(){
+                debugLog('Muted autoplay OK, unmuting...');
+                setTimeout(function(){
+                    video.muted=origMuted;
+                },600);
+            }).catch(function(){video.muted=origMuted;});
         }
+    }
 
-        debugLog('Play attempt #' + attempt);
-        var playPromise = video.play();
-        if (playPromise !== undefined) {
-            playPromise.then(function() {
-                debugLog('Play started on attempt #' + attempt);
-            }).catch(function(err) {
-                debugLog('Play attempt #' + attempt + ' failed: ' + err.name + ': ' + err.message);
-
-                if (err.name === 'NotAllowedError') {
-                    // Autoplay blocked - need user interaction
-                    debugLog('Autoplay blocked, setting up tap-to-play');
-                    document.getElementById('bufferingSpinner').style.display = 'none';
-                    showToast('👆', 'Oynatmak için ekrana dokunun');
-                    setupTapToPlay(video);
-                } else if (err.name === 'AbortError') {
-                    // Load interrupted, retry
-                    setTimeout(function() { playAttempt(attempt + 1); }, 500 * attempt);
-                } else if (err.name === 'NotSupportedError') {
-                    // Format not supported
-                    debugLog('Format not supported natively');
-                    if (!hlsInstance && platformInfo.hlsJsSupported) {
-                        // Try HLS.js as fallback
-                        debugLog('Falling back to HLS.js');
-                        playWithHlsJs(video, video.src || video.querySelector('source')?.src, ch);
-                    } else {
-                        document.getElementById('bufferingSpinner').style.display = 'none';
-                        showToast('❌', 'Bu format desteklenmiyor');
-                        showBg();
-                        currentPlayingUrl = '';
-                    }
-                } else {
-                    setTimeout(function() { playAttempt(attempt + 1); }, 500 * attempt);
+    var playPromise=video.play();
+    if(playPromise!==undefined){
+        playPromise.then(function(){
+            debugLog('Play OK on attempt #'+playAttemptCount);
+            playAttemptCount=0;
+        }).catch(function(err){
+            debugLog('Play fail #'+playAttemptCount+': '+err.name+': '+err.message);
+            if(err.name==='NotAllowedError'){
+                document.getElementById('bufferingSpinner').style.display='none';
+                showToast('👆','Oynatmak için ekrana dokunun');
+                setupTapToPlay(video);
+                playAttemptCount=0;
+            }else if(err.name==='AbortError'){
+                setTimeout(function(){attemptPlay(video,ch);},400*playAttemptCount);
+            }else if(err.name==='NotSupportedError'){
+                debugLog('Format not supported natively');
+                if(!hlsInstance&&platformInfo.hlsJsSupported&&isHlsUrl(video.src||'')){
+                    debugLog('Falling back to HLS.js');
+                    var fu=video.src||(video.querySelector('source')?video.querySelector('source').src:'');
+                    if(fu)playWithHlsJs(video,fu,ch);
+                }else{
+                    document.getElementById('bufferingSpinner').style.display='none';
+                    showToast('❌','Bu format desteklenmiyor');
+                    showBg();
+                    currentPlayingUrl='';
+                    playAttemptCount=0;
                 }
-            });
-        }
-    };
-
-    // Small delay before first attempt on Android
-    if (platformInfo.isAndroid) {
-        setTimeout(function() { playAttempt(1); }, 300);
-    } else {
-        playAttempt(1);
+            }else{
+                setTimeout(function(){attemptPlay(video,ch);},500*playAttemptCount);
+            }
+        });
     }
 }
 
-function setupTapToPlay(video) {
-    var overlay = document.getElementById('videoContainer');
-    var handler = function tapHandler(e) {
-        // Don't trigger on control buttons
-        if (e.target.closest('#playerControls') || e.target.closest('#channelInfoBar') ||
-            e.target.closest('#sidebar') || e.target.closest('#categorySidebar')) return;
-
+// ---- TAP TO PLAY ----
+function setupTapToPlay(video){
+    var overlay=document.getElementById('videoContainer');
+    var handler=function tapHandler(e){
+        if(e.target.closest('#playerControls')||e.target.closest('#channelInfoBar')||e.target.closest('#sidebar')||e.target.closest('#categorySidebar'))return;
         debugLog('Tap-to-play triggered');
-        video.play().then(function() {
-            debugLog('Tap-to-play: play started');
-            overlay.removeEventListener('click', tapHandler);
-            overlay.removeEventListener('touchstart', tapHandler);
-        }).catch(function(err) {
-            debugLog('Tap-to-play failed: ' + err.message);
-        });
+        video.play().then(function(){
+            debugLog('Tap-to-play: OK');
+            overlay.removeEventListener('click',tapHandler);
+            overlay.removeEventListener('touchstart',tapHandler);
+            document.getElementById('bufferingSpinner').style.display='block';
+        }).catch(function(err){debugLog('Tap-to-play fail: '+err.message);});
     };
-
-    overlay.addEventListener('click', handler);
-    overlay.addEventListener('touchstart', handler, { passive: true });
-
-    // Also try playing muted first (Android often allows muted autoplay)
-    if (platformInfo.isAndroid) {
-        var wasMuted = video.muted;
-        video.muted = true;
-        video.play().then(function() {
-            debugLog('Muted autoplay worked, unmuting after delay');
-            setTimeout(function() {
-                video.muted = wasMuted;
-                overlay.removeEventListener('click', handler);
-                overlay.removeEventListener('touchstart', handler);
-            }, 500);
-        }).catch(function() {
-            video.muted = wasMuted;
-            debugLog('Even muted autoplay failed');
-        });
-    }
+    overlay.addEventListener('click',handler);
+    overlay.addEventListener('touchstart',handler,{passive:true});
 }
 
-function setupVideoEvents(video, ch) {
-    video.onplaying = function() {
+// ---- VIDEO EVENTS ----
+function setupVideoEvents(video,ch){
+    video.onplaying=function(){
         debugLog('Event: playing');
-        document.getElementById('bufferingSpinner').style.display = 'none';
-        isPlaying = true;
-        document.getElementById('playPauseBtn').textContent = '⏸';
+        document.getElementById('bufferingSpinner').style.display='none';
+        isPlaying=true;
+        document.getElementById('playPauseBtn').textContent='⏸';
         hideBg();
     };
-
-    video.onwaiting = function() {
-        document.getElementById('bufferingSpinner').style.display = 'block';
-    };
-
-    video.oncanplay = function() {
-        debugLog('Event: canplay');
-    };
-
-    video.oncanplaythrough = function() {
+    video.onwaiting=function(){document.getElementById('bufferingSpinner').style.display='block';};
+    video.oncanplay=function(){debugLog('Event: canplay');};
+    video.oncanplaythrough=function(){
         debugLog('Event: canplaythrough');
-        document.getElementById('bufferingSpinner').style.display = 'none';
+        document.getElementById('bufferingSpinner').style.display='none';
     };
-
-    video.onloadedmetadata = function() {
-        debugLog('Event: loadedmetadata ' + video.videoWidth + 'x' + video.videoHeight);
+    video.onloadedmetadata=function(){
+        debugLog('Event: loadedmetadata '+video.videoWidth+'x'+video.videoHeight);
     };
-
-    video.onloadeddata = function() {
+    video.onloadeddata=function(){
         debugLog('Event: loadeddata');
-        // Try play again when data is loaded (helps on Android)
-        if (video.paused && !isPlaying) {
-            video.play().catch(function() {});
-        }
+        if(video.paused&&!isPlaying){video.play().catch(function(){});}
     };
-
-    video.onstalled = function() {
-        debugLog('Event: stalled');
-    };
-
-    video.onerror = function(e) {
-        var err = video.error;
-        var msg = err ? ('code=' + err.code + ' msg=' + (err.message || 'unknown')) : 'unknown';
-        debugLog('Event: error - ' + msg);
-        document.getElementById('bufferingSpinner').style.display = 'none';
-        currentPlayingUrl = '';
-
-        if (stallChecker) { clearInterval(stallChecker); stallChecker = null; }
-        if (resolutionChecker) { clearInterval(resolutionChecker); resolutionChecker = null; }
-
-        // On Android, if native fails, try HLS.js
-        if (!hlsInstance && platformInfo.hlsJsSupported && err && err.code !== 4) {
-            debugLog('Native error, trying HLS.js fallback');
-            currentPlayingUrl = ch.url;
-            playWithHlsJs(video, ch.url, ch);
+    video.onstalled=function(){debugLog('Event: stalled');};
+    video.onerror=function(e){
+        var err=video.error;
+        var msg=err?('code='+err.code+' msg='+(err.message||'unknown')):'unknown';
+        debugLog('Event: error - '+msg);
+        document.getElementById('bufferingSpinner').style.display='none';
+        currentPlayingUrl='';
+        if(stallChecker){clearInterval(stallChecker);stallChecker=null;}
+        if(resolutionChecker){clearInterval(resolutionChecker);resolutionChecker=null;}
+        // Native başarısızsa HLS.js dene
+        if(!hlsInstance&&platformInfo.hlsJsSupported&&err&&err.code!==4&&ch&&ch.url){
+            debugLog('Native error, HLS.js fallback...');
+            currentPlayingUrl=ch.url;
+            playWithHlsJs(video,ch.url,ch);
             return;
         }
-
-        showToast('❌', 'Bu kanal oynatılamıyor');
+        showToast('❌','Bu kanal oynatılamıyor');
         showBg();
     };
 }
 
-function setupStallChecker(video) {
-    let lastT = -1, sc = 0;
-    stallChecker = setInterval(function() {
-        if (video.paused || video.ended || !isPlaying) return;
-        if (video.currentTime === lastT && video.readyState >= 2) {
+// ---- STALL CHECKER ----
+function setupStallChecker(video){
+    if(stallChecker)clearInterval(stallChecker);
+    var lastT=-1,sc=0;
+    stallChecker=setInterval(function(){
+        if(video.paused||video.ended||!isPlaying)return;
+        if(video.currentTime===lastT&&video.readyState>=2){
             sc++;
-            if (sc >= 2) {
-                debugLog('Stall detected, attempting recovery');
-                var b = video.buffered;
-                if (b.length > 0 && b.end(b.length - 1) > video.currentTime + 0.5) {
-                    video.currentTime += 0.2;
-                } else if (hlsInstance) {
+            if(sc>=2){
+                debugLog('Stall detected, recovering...');
+                var b=video.buffered;
+                if(b.length>0&&b.end(b.length-1)>video.currentTime+0.5){
+                    video.currentTime+=0.3;
+                }else if(hlsInstance){
                     hlsInstance.startLoad();
                 }
-                sc = 0;
+                sc=0;
             }
-        } else {
-            sc = 0;
-        }
-        lastT = video.currentTime;
-    }, 3000);
+        }else{sc=0;}
+        lastT=video.currentTime;
+    },3000);
 }
 
+// ---- CLEANUP ----
+function cleanupPlayback(){
+    if(hlsInstance){
+        hlsInstance.destroy();
+        hlsInstance=null;
+    }
+    if(stallChecker){clearInterval(stallChecker);stallChecker=null;}
+    if(resolutionChecker){clearInterval(resolutionChecker);resolutionChecker=null;}
+    var video=document.getElementById('videoPlayer');
+    video.pause();
+    video.removeAttribute('src');
+    video.innerHTML='';
+    video.removeAttribute('crossorigin');
+    isPlaying=false;
+    playAttemptCount=0;
+    currentPlayingUrl='';
+}
+
+// ---- CHANNEL INFO BAR ----
 function showChannelInfoBar(ch){
     document.getElementById('infoBarNumber').textContent=ch.number;
     document.getElementById('infoBarName').textContent=ch.name;
     document.getElementById('infoBarGroup').textContent=ch.group||'';
-    const bar=document.getElementById('channelInfoBar');bar.style.display='block';
-    clearTimeout(overlayTimeout);overlayTimeout=setTimeout(()=>{bar.style.display='none';},5000);
+    var bar=document.getElementById('channelInfoBar');
+    bar.style.display='block';
+    clearTimeout(overlayTimeout);
+    overlayTimeout=setTimeout(function(){bar.style.display='none';},5000);
 }
 
-function playNextChannel(){if(!filteredChannels.length)return;focusedChannelIndex=(focusedChannelIndex+1)%filteredChannels.length;playChannel(focusedChannelIndex);}
-function playPrevChannel(){if(!filteredChannels.length)return;focusedChannelIndex=focusedChannelIndex<=0?filteredChannels.length-1:focusedChannelIndex-1;playChannel(focusedChannelIndex);}
-
-function togglePlayPause(){const v=document.getElementById('videoPlayer');if(v.paused){v.play().catch(function(){});isPlaying=true;document.getElementById('playPauseBtn').textContent='⏸';}else{v.pause();isPlaying=false;document.getElementById('playPauseBtn').textContent='▶️';}}
-function toggleMute(){const v=document.getElementById('videoPlayer');v.muted=!v.muted;document.getElementById('muteBtn').textContent=v.muted?'🔇':'🔊';document.getElementById('volumeSlider').value=v.muted?0:v.volume*100;}
-function setVolume(val){const v=document.getElementById('videoPlayer');v.volume=val/100;v.muted=val==0;document.getElementById('muteBtn').textContent=val==0?'🔇':(val<50?'🔉':'🔊');}
+// ---- CONTROLS ----
+function playNextChannel(){
+    if(!filteredChannels.length)return;
+    focusedChannelIndex=(focusedChannelIndex+1)%filteredChannels.length;
+    playChannel(focusedChannelIndex);
+}
+function playPrevChannel(){
+    if(!filteredChannels.length)return;
+    focusedChannelIndex=focusedChannelIndex<=0?filteredChannels.length-1:focusedChannelIndex-1;
+    playChannel(focusedChannelIndex);
+}
+function togglePlayPause(){
+    var v=document.getElementById('videoPlayer');
+    if(v.paused){
+        v.play().catch(function(){});
+        isPlaying=true;
+        document.getElementById('playPauseBtn').textContent='⏸';
+    }else{
+        v.pause();
+        isPlaying=false;
+        document.getElementById('playPauseBtn').textContent='▶️';
+    }
+}
+function toggleMute(){
+    var v=document.getElementById('videoPlayer');
+    v.muted=!v.muted;
+    document.getElementById('muteBtn').textContent=v.muted?'🔇':'🔊';
+    document.getElementById('volumeSlider').value=v.muted?0:v.volume*100;
+}
+function setVolume(val){
+    var v=document.getElementById('videoPlayer');
+    v.volume=val/100;
+    v.muted=val==0;
+    document.getElementById('muteBtn').textContent=val==0?'🔇':(val<50?'🔉':'🔊');
+}
 function toggleFullscreen(){
-    const el=document.documentElement;
+    var el=document.documentElement;
     if(!document.fullscreenElement&&!document.webkitFullscreenElement&&!document.mozFullScreenElement&&!document.msFullscreenElement){
-        if(el.requestFullscreen){el.requestFullscreen().catch(()=>{tryVideoFullscreen();});}
+        if(el.requestFullscreen){el.requestFullscreen().catch(function(){tryVideoFullscreen();});}
         else if(el.webkitRequestFullscreen){el.webkitRequestFullscreen();}
         else if(el.mozRequestFullScreen){el.mozRequestFullScreen();}
         else if(el.msRequestFullscreen){el.msRequestFullscreen();}
         else{tryVideoFullscreen();}
     }else{
-        if(document.exitFullscreen){document.exitFullscreen().catch(()=>{});}
+        if(document.exitFullscreen){document.exitFullscreen().catch(function(){});}
         else if(document.webkitExitFullscreen){document.webkitExitFullscreen();}
         else if(document.mozCancelFullScreen){document.mozCancelFullScreen();}
         else if(document.msExitFullscreen){document.msExitFullscreen();}
     }
 }
 function tryVideoFullscreen(){
-    const video=document.getElementById('videoPlayer');
+    var video=document.getElementById('videoPlayer');
     if(video.webkitEnterFullscreen){video.webkitEnterFullscreen();}
-    else if(video.requestFullscreen){video.requestFullscreen().catch(()=>{});}
+    else if(video.requestFullscreen){video.requestFullscreen().catch(function(){});}
     else if(video.webkitRequestFullscreen){video.webkitRequestFullscreen();}
 }
 
-function setupMouseEvents(){const p=document.getElementById('playerArea');p.addEventListener('mousemove',showControls);p.addEventListener('click',(e)=>{if(e.target===document.getElementById('videoPlayer')||e.target===document.getElementById('videoContainer'))showControls();});p.addEventListener('touchstart',showControls,{passive:true});}
-function showControls(){const c=document.getElementById('playerControls');c.classList.add('visible');clearTimeout(controlsTimeout);controlsTimeout=setTimeout(()=>c.classList.remove('visible'),4000);}
-function setupTouchGestures(){
-    let sx=0,sy=0,st=0;const pl=document.getElementById('playerArea');
-    pl.addEventListener('touchstart',(e)=>{if(e.target.closest('#playerControls')||e.target.closest('#channelInfoBar'))return;sx=e.touches[0].clientX;sy=e.touches[0].clientY;st=Date.now();},{passive:true});
-    pl.addEventListener('touchend',(e)=>{if(e.target.closest('#playerControls')||e.target.closest('#channelInfoBar'))return;const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;if(Date.now()-st<500&&Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)){if(dx>0&&!sidebarVisible&&!catSidebarVisible){showSidebar();}else if(dx<0&&(sidebarVisible||catSidebarVisible))hideAllSidebars();}},{passive:true});
-    const sb=document.getElementById('sidebar');let sbx=0;
-    sb.addEventListener('touchstart',(e)=>{sbx=e.touches[0].clientX;},{passive:true});
-    sb.addEventListener('touchend',(e)=>{if(e.changedTouches[0].clientX-sbx<-60)hideSidebar();},{passive:true});
-    const csb=document.getElementById('categorySidebar');let csbx=0;
-    csb.addEventListener('touchstart',(e)=>{csbx=e.touches[0].clientX;},{passive:true});
-    csb.addEventListener('touchend',(e)=>{if(e.changedTouches[0].clientX-csbx<-60)hideCategorySidebar();},{passive:true});
+// ---- MOUSE / TOUCH ----
+function setupMouseEvents(){
+    var p=document.getElementById('playerArea');
+    p.addEventListener('mousemove',showControls);
+    p.addEventListener('click',function(e){
+        if(e.target===document.getElementById('videoPlayer')||e.target===document.getElementById('videoContainer'))showControls();
+    });
+    p.addEventListener('touchstart',showControls,{passive:true});
 }
-function setupEventListeners(){document.addEventListener('keydown',handleKeydown);}
+function showControls(){
+    var c=document.getElementById('playerControls');
+    c.classList.add('visible');
+    clearTimeout(controlsTimeout);
+    controlsTimeout=setTimeout(function(){c.classList.remove('visible');},4000);
+}
+function setupTouchGestures(){
+    var sx=0,sy=0,st=0;
+    var pl=document.getElementById('playerArea');
+    pl.addEventListener('touchstart',function(e){
+        if(e.target.closest('#playerControls')||e.target.closest('#channelInfoBar'))return;
+        sx=e.touches[0].clientX;sy=e.touches[0].clientY;st=Date.now();
+    },{passive:true});
+    pl.addEventListener('touchend',function(e){
+        if(e.target.closest('#playerControls')||e.target.closest('#channelInfoBar'))return;
+        var dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
+        if(Date.now()-st<500&&Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)){
+            if(dx>0&&!sidebarVisible&&!catSidebarVisible){showSidebar();}
+            else if(dx<0&&(sidebarVisible||catSidebarVisible))hideAllSidebars();
+        }
+    },{passive:true});
+    var sb=document.getElementById('sidebar'),sbx=0;
+    sb.addEventListener('touchstart',function(e){sbx=e.touches[0].clientX;},{passive:true});
+    sb.addEventListener('touchend',function(e){if(e.changedTouches[0].clientX-sbx<-60)hideSidebar();},{passive:true});
+    var csb=document.getElementById('categorySidebar'),csbx=0;
+    csb.addEventListener('touchstart',function(e){csbx=e.touches[0].clientX;},{passive:true});
+    csb.addEventListener('touchend',function(e){if(e.changedTouches[0].clientX-csbx<-60)hideCategorySidebar();},{passive:true});
+}
 
+// ---- KEYBOARD ----
+function setupEventListeners(){
+    document.addEventListener('keydown',handleKeydown);
+}
 function handleKeydown(e){
-    const ae=document.activeElement;if(ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'||ae.tagName==='SELECT')){if(e.key==='Escape'){ae.blur();e.preventDefault();}return;}
-
+    var ae=document.activeElement;
+    if(ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'||ae.tagName==='SELECT')){
+        if(e.key==='Escape'){ae.blur();e.preventDefault();}return;
+    }
     switch(e.key){
         case'ArrowLeft':e.preventDefault();
             if(focusMode==='channels'){showCategorySidebar();}
@@ -1038,7 +1235,7 @@ function handleKeydown(e){
         case'PageUp':e.preventDefault();if(currentChannelIndex>=0)playNextChannel();break;
         case'PageDown':e.preventDefault();if(currentChannelIndex>=0)playPrevChannel();break;
         case'Enter':e.preventDefault();
-            if(focusMode==='categories'){const cn=allCategoryNames[focusedCategoryIndex];selectCategoryFromList(cn);}
+            if(focusMode==='categories'){var cn=allCategoryNames[focusedCategoryIndex];selectCategoryFromList(cn);}
             else if(focusMode==='channels'){if(filteredChannels.length>0)playChannel(focusedChannelIndex);}
             else{showSidebar();}
             break;
@@ -1055,10 +1252,68 @@ function handleKeydown(e){
         default:if(e.key>='0'&&e.key<='9'){e.preventDefault();handleNumberInput(e.key);}break;
     }
 }
+function adjustVolume(d){
+    var v=document.getElementById('videoPlayer');
+    var n=Math.max(0,Math.min(1,v.volume+d/100));
+    v.volume=n;v.muted=n===0;
+    document.getElementById('volumeSlider').value=n*100;
+    document.getElementById('muteBtn').textContent=n===0?'🔇':(n<.5?'🔉':'🔊');
+    showToast('🔊','Ses: %'+Math.round(n*100));
+}
+function handleNumberInput(d){
+    numberBuffer+=d;
+    document.getElementById('numberDisplay').textContent=numberBuffer;
+    document.getElementById('numberOverlay').style.display='block';
+    clearTimeout(numberTimeout);
+    numberTimeout=setTimeout(function(){
+        var n=parseInt(numberBuffer);
+        numberBuffer='';
+        document.getElementById('numberOverlay').style.display='none';
+        var i=filteredChannels.findIndex(function(c){return c.number===n;});
+        if(i!==-1){focusedChannelIndex=i;playChannel(i);}
+        else showToast('⚠️',n+' numaralı kanal bulunamadı');
+    },1500);
+}
 
-function adjustVolume(d){const v=document.getElementById('videoPlayer');let n=Math.max(0,Math.min(1,v.volume+d/100));v.volume=n;v.muted=n===0;document.getElementById('volumeSlider').value=n*100;document.getElementById('muteBtn').textContent=n===0?'🔇':(n<.5?'🔉':'🔊');showToast('🔊',`Ses: %${Math.round(n*100)}`);}
-function handleNumberInput(d){numberBuffer+=d;document.getElementById('numberDisplay').textContent=numberBuffer;document.getElementById('numberOverlay').style.display='block';clearTimeout(numberTimeout);numberTimeout=setTimeout(()=>{const n=parseInt(numberBuffer);numberBuffer='';document.getElementById('numberOverlay').style.display='none';const i=filteredChannels.findIndex(c=>c.number===n);if(i!==-1){focusedChannelIndex=i;playChannel(i);}else showToast('⚠️',`${n} numaralı kanal bulunamadı`);},1500);}
-function showToast(i,m){const t=document.getElementById('toast');document.getElementById('toastContent').innerHTML=`<span>${i}</span> ${m}`;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>{t.style.display='none';},3000);}
+// ---- INIT ----
+document.addEventListener('DOMContentLoaded',async function(){
+    debugLog('Platform: '+platformInfo.ua.substring(0,80));
+    debugLog('Android='+platformInfo.isAndroid+' WebView='+platformInfo.isAndroidWebView);
+    debugLog('NativeHLS='+platformInfo.hasNativeHLS+' MSE='+platformInfo.hasMSE+' HLS.js='+platformInfo.hlsJsSupported);
+    debugLog('Page protocol: '+(platformInfo.pageIsHTTPS?'HTTPS':'HTTP'));
+
+    var img=new Image();
+    img.src='https://raw.githubusercontent.com/kadirsener1/tvmyeni/refs/heads/main/bg.JPG';
+    await loadM3U(M3U_URL);
+    setTimeout(function(){
+        document.getElementById('loadingScreen').classList.add('hide');
+        showCategorySidebar();
+    },2000);
+    setupEventListeners();
+    setupMouseEvents();
+    setupTouchGestures();
+    setInterval(async function(){
+        var pi=currentChannelIndex;
+        await loadM3U(M3U_URL);
+        if(pi>=0&&pi<channels.length)currentChannelIndex=pi;
+    },AUTO_REFRESH);
+});
+
+// Expose to global scope for onclick handlers
+window.showCategorySidebar=showCategorySidebar;
+window.hideCategorySidebar=hideCategorySidebar;
+window.hideSidebar=hideSidebar;
+window.toggleSidebar=toggleSidebar;
+window.selectCategoryFromList=selectCategoryFromList;
+window.playChannel=playChannel;
+window.playNextChannel=playNextChannel;
+window.playPrevChannel=playPrevChannel;
+window.togglePlayPause=togglePlayPause;
+window.toggleMute=toggleMute;
+window.setVolume=setVolume;
+window.toggleFullscreen=toggleFullscreen;
+
+})();
 </script>
 </body>
 </html>
