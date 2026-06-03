@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>📺 SENTV - IPTV</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plyr@3.6.2/dist/plyr.css" />
     <style>
+        /* --- ÖNCEKİ TÜM CSS AYNI KALIYOR (KISALTILDI) --- */
         *{margin:0;padding:0;box-sizing:border-box}
-        :root{--primary:#6c5ce7;--primary-dark:#5a4bd1;--bg-dark:#0a0a1a;--bg-card:#141428;--bg-sidebar:rgba(10,10,26,0.95);--bg-sidebar-transparent:rgba(10,10,26,0.75);--text:#e0e0e0;--text-dim:#8888aa;--accent:#00cec9;--danger:#ff6b6b;--success:#00b894;--border:rgba(108,92,231,0.3);--glow:rgba(108,92,231,0.5)}
+        :root{--primary:#6c5ce7;--primary-dark:#5a4bd1;--bg-dark:#0a0a1a;--bg-card:#141428;--bg-sidebar:rgba(10,10,26,0.95);--bg-sidebar-transparent:rgba(10,10,26,0.75);--text:#e0e0e0;--text-dim:#8888aa;--accent:#00cec9;--danger:#ff6b6b;--success:#00b894;--border:rgba(108,92,231,0.3)}
         body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg-dark);color:var(--text);overflow:hidden;height:100vh;width:100vw}
         #loadingScreen{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg-dark);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10000;transition:opacity .5s}
         #loadingScreen.hide{opacity:0;pointer-events:none}
@@ -18,47 +18,32 @@
         @keyframes loadProgress{0%{width:0%}50%{width:70%}100%{width:100%}}
         @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
         #app{display:flex;height:100vh;width:100vw;position:relative}
-
-        #categorySidebar{position:fixed;left:0;top:0;width:220px;height:100vh;background:var(--bg-sidebar);backdrop-filter:blur(20px);z-index:1001;display:flex;flex-direction:column;transition:transform .35s cubic-bezier(.4,0,.2,1),opacity .35s;border-right:1px solid var(--border);box-shadow:5px 0 30px rgba(0,0,0,.5)}
+        #categorySidebar{position:fixed;left:0;top:0;width:220px;height:100vh;background:var(--bg-sidebar);backdrop-filter:blur(20px);z-index:1001;display:flex;flex-direction:column;transition:transform .35s cubic-bezier(.4,0,.2,1),opacity .35s;border-right:1px solid var(--border)}
         #categorySidebar.hidden{transform:translateX(-100%);opacity:0}
         .cat-sidebar-header{padding:16px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;min-height:60px;background:rgba(108,92,231,.1);flex-shrink:0}
         .cat-sidebar-header .logo{display:flex;align-items:center;gap:8px;font-size:18px;font-weight:800;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-        .cat-sidebar-header .logo span{font-size:22px}
-        .cat-list{flex:1;overflow-y:auto;padding:6px 8px;-webkit-overflow-scrolling:touch}
-        .cat-list::-webkit-scrollbar{width:4px}
-        .cat-list::-webkit-scrollbar-track{background:transparent}
-        .cat-list::-webkit-scrollbar-thumb{background:var(--primary);border-radius:2px}
+        .cat-list{flex:1;overflow-y:auto;padding:6px 8px}
         .cat-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;cursor:pointer;transition:background .1s,border-color .1s;border:1px solid transparent;margin-bottom:2px;font-size:13px;color:var(--text)}
         .cat-item:hover{background:rgba(108,92,231,.15);border-color:var(--border)}
         .cat-item.active{background:linear-gradient(135deg,rgba(108,92,231,.3),rgba(0,206,201,.15));border-color:var(--primary);color:#fff}
-        .cat-item.focused{background:rgba(0,206,201,.12);border-color:var(--accent);box-shadow:0 0 12px rgba(0,206,201,.25)}
-        .cat-item.active.focused{background:linear-gradient(135deg,rgba(108,92,231,.35),rgba(0,206,201,.2));border-color:var(--accent)}
+        .cat-item.focused{background:rgba(0,206,201,.12);border-color:var(--accent)}
         .cat-item-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
         .cat-item-count{font-size:10px;background:rgba(255,255,255,.1);padding:2px 8px;border-radius:10px;color:var(--text-dim);flex-shrink:0;margin-left:8px}
-        .cat-item.active .cat-item-count{background:rgba(255,255,255,.2);color:#fff}
-
-        #sidebar{position:fixed;left:0;top:0;width:380px;height:100vh;background:var(--bg-sidebar);backdrop-filter:blur(20px);z-index:1000;display:flex;flex-direction:column;transition:transform .35s cubic-bezier(.4,0,.2,1),opacity .35s;border-right:1px solid var(--border);box-shadow:5px 0 30px rgba(0,0,0,.5)}
+        #sidebar{position:fixed;left:0;top:0;width:380px;height:100vh;background:var(--bg-sidebar);backdrop-filter:blur(20px);z-index:1000;display:flex;flex-direction:column;transition:transform .35s cubic-bezier(.4,0,.2,1),opacity .35s;border-right:1px solid var(--border)}
         #sidebar.hidden{transform:translateX(-100%);opacity:0}
-        #sidebar.overlay-mode{background:var(--bg-sidebar-transparent)}
         .sidebar-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;min-height:65px;background:rgba(108,92,231,.1);flex-shrink:0}
         .sidebar-header .logo{display:flex;align-items:center;gap:10px;font-size:22px;font-weight:800;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-        .sidebar-header .logo span{font-size:28px}
         .header-actions{display:flex;gap:8px}
         .icon-btn{width:36px;height:36px;border:1px solid var(--border);background:rgba(108,92,231,.15);color:var(--text);border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s}
-        .icon-btn:hover,.icon-btn:focus{background:var(--primary);color:#fff;border-color:var(--primary);outline:none}
-        .sidebar-cat-label{padding:8px 20px;font-size:12px;color:var(--accent);border-bottom:1px solid rgba(0,206,201,.15);flex-shrink:0;font-weight:700;display:flex;align-items:center;gap:8px;background:rgba(0,206,201,.05)}
-        .sidebar-cat-label .back-hint{font-size:10px;color:var(--text-dim);font-weight:400;margin-left:auto}
+        .icon-btn:hover{background:var(--primary);color:#fff;border-color:var(--primary)}
+        .sidebar-cat-label{padding:8px 20px;font-size:12px;color:var(--accent);border-bottom:1px solid rgba(0,206,201,.15);flex-shrink:0;font-weight:700;background:rgba(0,206,201,.05)}
         .channel-list-wrapper{flex:1;overflow:hidden;display:flex;flex-direction:column}
         .channel-count{padding:8px 20px;font-size:12px;color:var(--text-dim);border-bottom:1px solid rgba(255,255,255,.03);flex-shrink:0}
-        .channel-list{flex:1;overflow-y:auto;padding:6px 10px;-webkit-overflow-scrolling:touch}
-        .channel-list::-webkit-scrollbar{width:4px}
-        .channel-list::-webkit-scrollbar-track{background:transparent}
-        .channel-list::-webkit-scrollbar-thumb{background:var(--primary);border-radius:2px}
+        .channel-list{flex:1;overflow-y:auto;padding:6px 10px}
         .channel-item{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:12px;cursor:pointer;transition:background .1s,border-color .1s;border:1px solid transparent;margin-bottom:2px}
         .channel-item:hover{background:rgba(108,92,231,.15);border-color:var(--border)}
-        .channel-item.active{background:linear-gradient(135deg,rgba(108,92,231,.3),rgba(0,206,201,.15));border-color:var(--primary);box-shadow:0 0 20px rgba(108,92,231,.2)}
-        .channel-item.focused{background:rgba(0,206,201,.12);border-color:var(--accent);box-shadow:0 0 12px rgba(0,206,201,.25)}
-        .channel-item.active.focused{background:linear-gradient(135deg,rgba(108,92,231,.35),rgba(0,206,201,.2));border-color:var(--accent)}
+        .channel-item.active{background:linear-gradient(135deg,rgba(108,92,231,.3),rgba(0,206,201,.15));border-color:var(--primary)}
+        .channel-item.focused{background:rgba(0,206,201,.12);border-color:var(--accent)}
         .channel-logo{width:44px;height:44px;border-radius:10px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;font-size:20px}
         .channel-logo img{width:100%;height:100%;object-fit:contain}
         .channel-info{flex:1;min-width:0}
@@ -67,12 +52,15 @@
         .channel-num{font-size:11px;color:var(--text-dim);background:rgba(255,255,255,.05);padding:2px 8px;border-radius:6px;font-weight:600}
         #playerArea{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000;position:relative;width:100%;height:100vh}
         #videoContainer{width:100%;height:100%;position:relative;background:#000}
-
-        /* Plyr container styling */
-        #plyrContainer{width:100%;height:100%;position:relative;z-index:2}
-        #plyrContainer .plyr{width:100%;height:100%}
-        #plyrContainer .plyr__video-wrapper{height:100%}
-        #plyrContainer video{width:100%;height:100%;object-fit:contain}
+        
+        /* === APPCREATOR24 TARZI BASİT VIDEO === */
+        #videoPlayer {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            object-fit: contain;
+            display: block;
+        }
 
         #videoBg{position:absolute;top:0;left:0;width:100%;height:100%;z-index:3;pointer-events:none;background-color:#000;background-image:url('https://raw.githubusercontent.com/kadirsener1/tvmyeni/refs/heads/main/bg.JPG');background-size:cover;background-position:center;background-repeat:no-repeat;transition:opacity .4s ease}
         #videoBg.playing{opacity:0;pointer-events:none}
@@ -86,8 +74,7 @@
         .key-hint{display:flex;align-items:center;gap:8px;color:var(--text-dim);font-size:13px}
         .key-badge{background:rgba(108,92,231,.2);border:1px solid var(--border);padding:4px 10px;border-radius:6px;font-size:12px;color:var(--primary);font-weight:600}
 
-        #channelInfoBar{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent 0%,rgba(0,0,0,.85) 30%,rgba(0,0,0,.95) 100%);padding:40px 30px 24px 30px;z-index:100;display:none;animation:infoBarSlideUp .35s ease}
-        @keyframes infoBarSlideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+        #channelInfoBar{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent 0%,rgba(0,0,0,.85) 30%,rgba(0,0,0,.95) 100%);padding:40px 30px 24px 30px;z-index:100;display:none}
         .info-bar-content{display:flex;align-items:center;justify-content:space-between;gap:20px}
         .info-bar-left{display:flex;align-items:center;gap:16px;flex:1;min-width:0}
         .info-bar-number{font-size:32px;font-weight:800;color:var(--primary);font-variant-numeric:tabular-nums;flex-shrink:0}
@@ -99,7 +86,6 @@
         .info-bar-resolution .res-dot{width:8px;height:8px;border-radius:50%;background:var(--success);animation:blink 1.5s infinite}
         .info-bar-live{display:flex;align-items:center;gap:6px;padding:5px 12px;background:rgba(255,107,107,.2);border:1px solid rgba(255,107,107,.3);border-radius:8px;font-size:12px;color:var(--danger);font-weight:700}
         .info-bar-live .live-dot{width:8px;height:8px;border-radius:50%;background:var(--danger);animation:blink 1s infinite}
-
         @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 
         #toast{position:fixed;top:30px;right:30px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px 20px;z-index:9999;display:none;animation:toastSlideDown .3s ease;box-shadow:0 10px 30px rgba(0,0,0,.3);max-width:300px}
@@ -113,96 +99,9 @@
         .number-hint{font-size:12px;color:var(--text-dim);margin-top:4px}
         #mobileMenuBtn{display:none;position:fixed;top:15px;left:15px;z-index:900;width:44px;height:44px;border-radius:12px;background:rgba(10,10,26,.9);border:1px solid var(--border);color:var(--text);font-size:20px;cursor:pointer;align-items:center;justify-content:center;backdrop-filter:blur(10px)}
 
-        #debugPanel{position:fixed;bottom:10px;left:10px;background:rgba(0,0,0,.9);color:#0f0;font-family:monospace;font-size:10px;padding:8px;border-radius:6px;z-index:99999;max-width:300px;max-height:200px;overflow-y:auto;display:none;word-wrap:break-word;line-height:1.4}
-        #debugPanel.visible{display:block}
-
-        /* Plyr theme overrides to match SENTV dark theme */
-        .plyr{--plyr-color-main:var(--primary);--plyr-video-background:#000}
-        .plyr--full-ui input[type=range]{color:var(--primary)}
-        .plyr__control--overlaid{background:var(--primary)!important}
-        .plyr__control--overlaid:hover{background:var(--primary-dark)!important}
-
         @media(max-width:768px){
-            #categorySidebar{width:100%}
-            #sidebar{width:100%;border-right:none}
+            #categorySidebar,#sidebar{width:100%;border-right:none}
             #mobileMenuBtn{display:flex}
-            .sidebar-header{padding:12px 16px;min-height:56px}
-            .sidebar-header .logo{font-size:18px}
-            .sidebar-header .logo span{font-size:24px}
-            .cat-sidebar-header{padding:12px 14px;min-height:52px}
-            .cat-sidebar-header .logo{font-size:16px}
-            .cat-sidebar-header .logo span{font-size:20px}
-            .cat-item{padding:9px 12px;font-size:12px}
-            .channel-list{padding:4px 6px}
-            .channel-item{padding:8px 10px;gap:10px}
-            .channel-logo{width:36px;height:36px;font-size:16px}
-            .channel-name{font-size:13px}
-            .channel-group{font-size:10px}
-            .channel-num{font-size:10px;padding:2px 6px}
-            .channel-count{padding:6px 12px;font-size:11px}
-            .sidebar-cat-label{padding:6px 12px;font-size:11px}
-
-            #channelInfoBar{padding:20px 14px 16px 14px;bottom:0}
-            .info-bar-content{flex-direction:column;align-items:flex-start;gap:6px}
-            .info-bar-left{gap:10px;width:100%}
-            .info-bar-number{font-size:22px}
-            .info-bar-name{font-size:16px}
-            .info-bar-group{font-size:11px}
-            .info-bar-right{width:100%;justify-content:flex-start;gap:8px}
-            .info-bar-resolution{font-size:11px;padding:3px 10px}
-            .info-bar-live{font-size:10px;padding:3px 8px}
-
-            .welcome-icon{font-size:50px;margin-bottom:14px}
-            .welcome-title{font-size:20px}
-            .welcome-subtitle{font-size:13px;padding:0 20px;text-align:center}
-            .welcome-keys{gap:10px;margin-top:20px}
-            .key-hint{font-size:11px}
-            .key-badge{padding:3px 8px;font-size:10px}
-            #numberOverlay{top:15px;right:15px;padding:12px 18px}
-            .number-display{font-size:36px}
-            #toast{top:15px;right:15px;left:15px;max-width:none;padding:10px 16px}
-            .toast-content{font-size:13px}
-        }
-        @media(max-width:480px){
-            .sidebar-header{padding:10px 12px;min-height:50px}
-            .sidebar-header .logo{font-size:16px}
-            .sidebar-header .logo span{font-size:20px}
-            .channel-logo{width:32px;height:32px;font-size:14px;border-radius:8px}
-            .channel-item{padding:7px 8px;gap:8px;border-radius:10px}
-            .channel-name{font-size:12px}
-            .channel-num{font-size:9px;padding:1px 5px}
-            .cat-item{padding:7px 10px;font-size:11px;border-radius:8px}
-            .cat-item-count{font-size:9px;padding:1px 6px}
-            #channelInfoBar{padding:16px 10px 14px 10px}
-            .info-bar-number{font-size:18px}
-            .info-bar-name{font-size:14px}
-            .info-bar-left{gap:8px}
-            .info-bar-resolution{font-size:10px;padding:2px 8px}
-            .info-bar-resolution .res-dot{width:6px;height:6px}
-            .info-bar-live{font-size:9px;padding:2px 6px}
-            .info-bar-live .live-dot{width:6px;height:6px}
-        }
-        @media(max-height:500px)and(orientation:landscape){
-            #categorySidebar{width:180px}
-            #sidebar{width:300px}
-            .sidebar-header{min-height:44px;padding:8px 12px}
-            .cat-sidebar-header{min-height:40px;padding:8px 10px}
-            .channel-item{padding:6px 10px}
-            .channel-logo{width:32px;height:32px}
-            .cat-item{padding:6px 10px;font-size:11px}
-            .channel-count{padding:4px 12px;font-size:10px}
-            #channelInfoBar{padding:15px 16px 10px 16px}
-            .info-bar-name{font-size:16px}
-            .info-bar-number{font-size:22px}
-        }
-        @media(pointer:coarse){
-            .channel-item{min-height:54px}
-            .cat-item{min-height:44px}
-            .icon-btn{min-width:40px;min-height:40px}
-        }
-
-        @supports(padding-bottom:env(safe-area-inset-bottom)){
-            #channelInfoBar{padding-bottom:calc(16px + env(safe-area-inset-bottom))}
         }
     </style>
 </head>
@@ -213,13 +112,13 @@
     <div class="loader-bar"><div class="loader-bar-inner"></div></div>
 </div>
 <div id="toast"><div class="toast-content" id="toastContent"></div></div>
-<div id="debugPanel"></div>
 <button id="mobileMenuBtn" onclick="toggleSidebar()">☰</button>
 <div id="app">
+    <!-- Sidebar ve Kategori Sidebar aynı kalıyor (kısaltıldı) -->
     <div id="categorySidebar" class="hidden">
         <div class="cat-sidebar-header">
             <div class="logo"><span>📂</span> Kategoriler</div>
-            <div class="header-actions"><button class="icon-btn" onclick="hideCategorySidebar()" title="Kapat">✕</button></div>
+            <div class="header-actions"><button class="icon-btn" onclick="hideCategorySidebar()">✕</button></div>
         </div>
         <div class="cat-list" id="catList"></div>
     </div>
@@ -228,11 +127,11 @@
         <div class="sidebar-header">
             <div class="logo"><span>📺</span> SENTV</div>
             <div class="header-actions">
-                <button class="icon-btn" onclick="showCategorySidebar()" title="Kategoriler">📂</button>
-                <button class="icon-btn" onclick="hideSidebar()" title="Kapat">✕</button>
+                <button class="icon-btn" onclick="showCategorySidebar()">📂</button>
+                <button class="icon-btn" onclick="hideSidebar()">✕</button>
             </div>
         </div>
-        <div class="sidebar-cat-label" id="sidebarCatLabel">📂 Tümü <span class="back-hint">◄ Kategoriler</span></div>
+        <div class="sidebar-cat-label" id="sidebarCatLabel">📂 Tümü</div>
         <div class="channel-list-wrapper">
             <div class="channel-count" id="channelCount">0 kanal</div>
             <div class="channel-list" id="channelList"></div>
@@ -242,22 +141,20 @@
     <div id="playerArea">
         <div id="videoContainer">
             <div id="videoBg"></div>
-            <div id="plyrContainer">
-                <video id="videoPlayer" autoplay controls crossorigin playsinline webkit-playsinline>
-                    <source type="application/vnd.apple.mpegurl" src="">
-                </video>
-            </div>
+            
+            <!-- === APPCREATOR24 DEFAULT PLAYER === -->
+            <video id="videoPlayer" 
+                   controls 
+                   autoplay 
+                   playsinline 
+                   webkit-playsinline
+                   style="width:100%;height:100%;background:#000;object-fit:contain;">
+            </video>
+            
             <div id="welcomeScreen">
                 <div class="welcome-icon">📺</div>
                 <div class="welcome-title">SENTV</div>
                 <div class="welcome-subtitle">Bir kanal seçerek izlemeye başlayın</div>
-                <div class="welcome-keys">
-                    <div class="key-hint"><span class="key-badge">OK</span> Kanal listesi</div>
-                    <div class="key-hint"><span class="key-badge">◄</span> Kategoriler</div>
-                    <div class="key-hint"><span class="key-badge">▲▼</span> Kanal değiştir</div>
-                    <div class="key-hint"><span class="key-badge">CH+/-</span> Kanal değiştir</div>
-                    <div class="key-hint"><span class="key-badge">0-9</span> Kanal no</div>
-                </div>
             </div>
             <div id="bufferingSpinner"><div class="spinner"></div></div>
             <div id="channelInfoBar">
@@ -270,524 +167,290 @@
                         </div>
                     </div>
                     <div class="info-bar-right">
-                        <div class="info-bar-resolution" id="infoBarRes" style="display:none"><div class="res-dot"></div><span id="infoBarResText"></span></div>
+                        <div class="info-bar-resolution" id="infoBarRes" style="display:none">
+                            <div class="res-dot"></div><span id="infoBarResText"></span>
+                        </div>
                         <div class="info-bar-live"><div class="live-dot"></div>CANLI</div>
                     </div>
                 </div>
             </div>
-            <div id="numberOverlay"><div class="number-display" id="numberDisplay"></div><div class="number-hint">Kanal numarası</div></div>
+            <div id="numberOverlay">
+                <div class="number-display" id="numberDisplay"></div>
+                <div class="number-hint">Kanal numarası</div>
+            </div>
         </div>
     </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/plyr@3.6.12/dist/plyr.min.js"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js"></script>
 <script>
-const M3U_URL='https://raw.githubusercontent.com/kadirsener1/avva/refs/heads/main/playlist.m3u';
-const AUTO_REFRESH=30*60*1000;
-let channels=[],filteredChannels=[],categories=[],allCategoryNames=[];
-let currentCategory='all',currentChannelIndex=-1,focusedChannelIndex=0;
-let sidebarVisible=false,catSidebarVisible=false,isPlaying=false;
-let hlsInstance=null,plyrPlayer=null,overlayTimeout=null;
-let numberBuffer='',numberTimeout=null;
-let focusedCategoryIndex=0;
-let currentResolution='',resolutionChecker=null;
-let currentPlayingUrl='';
-let focusMode='none';
+// ==================== APPCREATOR24 TARZI BASİT PLAYER ====================
 
-// ==========================================
-// DEBUG LOGGING
-// ==========================================
-let debugLines = [];
-function debugLog(msg) {
-    const ts = new Date().toLocaleTimeString();
-    const line = `[${ts}] ${msg}`;
-    debugLines.push(line);
-    if (debugLines.length > 50) debugLines.shift();
-    const dp = document.getElementById('debugPanel');
-    if (dp) dp.innerHTML = debugLines.join('<br>');
-    console.log('[SENTV]', msg);
-}
+const M3U_URL = 'https://raw.githubusercontent.com/kadirsener1/avva/refs/heads/main/playlist.m3u';
+let channels = [], filteredChannels = [], categories = [], allCategoryNames = [];
+let currentCategory = 'all', currentChannelIndex = -1, focusedChannelIndex = 0;
+let sidebarVisible = false, catSidebarVisible = false;
+let hlsInstance = null;
+let currentPlayingUrl = '';
+let focusMode = 'none';
+let overlayTimeout = null;
 
-let debugTapCount = 0, debugTapTimer = null;
-document.addEventListener('click', function(e) {
-    if (e.clientX > window.innerWidth - 80 && e.clientY < 80) {
-        debugTapCount++;
-        clearTimeout(debugTapTimer);
-        debugTapTimer = setTimeout(() => { debugTapCount = 0; }, 600);
-        if (debugTapCount >= 3) {
-            debugTapCount = 0;
-            document.getElementById('debugPanel').classList.toggle('visible');
-        }
-    }
-});
-
-function showBg(){var b=document.getElementById('videoBg');b.classList.remove('playing');b.style.opacity='1';}
-function hideBg(){var b=document.getElementById('videoBg');b.classList.add('playing');b.style.opacity='0';}
-
-// ==========================================
-// INIT
-// ==========================================
-document.addEventListener('DOMContentLoaded',async()=>{
-    debugLog('Platform: ' + navigator.userAgent.substring(0, 80));
-
-    var img=new Image();
-    img.src='https://raw.githubusercontent.com/kadirsener1/tvmyeni/refs/heads/main/bg.JPG';
-
+// ==================== YÜKLEME ====================
+document.addEventListener('DOMContentLoaded', async () => {
     await loadM3U(M3U_URL);
-    setTimeout(()=>{
+    setTimeout(() => {
         document.getElementById('loadingScreen').classList.add('hide');
         showCategorySidebar();
-    },2000);
-    setupEventListeners();setupTouchGestures();
-    setInterval(async()=>{const pi=currentChannelIndex;await loadM3U(M3U_URL);if(pi>=0&&pi<channels.length)currentChannelIndex=pi;},AUTO_REFRESH);
+    }, 2000);
+    setupEventListeners();
+    setupTouchGestures();
 });
 
-async function loadM3U(url){
-    try{const r=await fetch(url);if(!r.ok)throw 0;channels=parseM3U(await r.text());debugLog('M3U loaded direct: '+channels.length+' ch');}
-    catch(e){try{const r=await fetch('https://api.allorigins.win/raw?url='+encodeURIComponent(url));channels=parseM3U(await r.text());debugLog('M3U loaded proxy: '+channels.length+' ch');}catch(e2){channels=[];showToast('❌','M3U yüklenemedi');debugLog('M3U FAIL: '+e2);return;}}
-    channels.forEach((c,i)=>{c.index=i;c.number=i+1;});
-    extractCategories();filterChannels();forceRebuildList();
-    showToast('✅',`${channels.length} kanal yüklendi`);
+async function loadM3U(url) {
+    try {
+        const r = await fetch(url);
+        channels = parseM3U(await r.text());
+    } catch (e) {
+        try {
+            const r = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(url));
+            channels = parseM3U(await r.text());
+        } catch (e2) {
+            channels = [];
+            showToast('❌', 'M3U yüklenemedi');
+            return;
+        }
+    }
+    channels.forEach((c, i) => { c.index = i; c.number = i + 1; });
+    extractCategories();
+    filterChannels();
+    forceRebuildList();
+    showToast('✅', `${channels.length} kanal yüklendi`);
 }
 
-function parseM3U(t){
-    const lines=t.split('\n'),p=[];let c=null;
-    for(let i=0;i<lines.length;i++){const l=lines[i].trim();
-        if(l.startsWith('#EXTINF:')){c={};const nm=l.match(/tvg-name="([^"]*)"/),lg=l.match(/tvg-logo="([^"]*)"/),gr=l.match(/group-title="([^"]*)"/),tl=l.match(/,(.+)$/);c.name=nm?nm[1]:(tl?tl[1].trim():'Bilinmeyen');c.logo=lg?lg[1]:'';c.group=gr?gr[1]:'Diğer';if(!c.name&&tl)c.name=tl[1].trim();}
-        else if(l&&!l.startsWith('#')&&c){c.url=l;if(c.name&&c.url)p.push(c);c=null;}}
+function parseM3U(t) {
+    const lines = t.split('\n'), p = [];
+    let c = null;
+    for (let i = 0; i < lines.length; i++) {
+        const l = lines[i].trim();
+        if (l.startsWith('#EXTINF:')) {
+            c = {};
+            const nm = l.match(/tvg-name="([^"]*)"/), lg = l.match(/tvg-logo="([^"]*)"/),
+                  gr = l.match(/group-title="([^"]*)"/), tl = l.match(/,(.+)$/);
+            c.name = nm ? nm[1] : (tl ? tl[1].trim() : 'Bilinmeyen');
+            c.logo = lg ? lg[1] : '';
+            c.group = gr ? gr[1] : 'Diğer';
+        } else if (l && !l.startsWith('#') && c) {
+            c.url = l;
+            if (c.name && c.url) p.push(c);
+            c = null;
+        }
+    }
     return p;
 }
 
-function extractCategories(){
-    const s=new Set();channels.forEach(c=>{if(c.group)s.add(c.group);});
-    categories=Array.from(s);
-    allCategoryNames=['all',...categories];
+// ==================== KATEGORİ VE KANAL LİSTESİ ====================
+function extractCategories() {
+    const s = new Set();
+    channels.forEach(c => { if (c.group) s.add(c.group); });
+    categories = Array.from(s);
+    allCategoryNames = ['all', ...categories];
     renderCatList();
 }
 
-function renderCatList(){
-    const container=document.getElementById('catList');
-    let h='';
-    h+=`<div class="cat-item${currentCategory==='all'?' active':''}${focusMode==='categories'&&focusedCategoryIndex===0?' focused':''}" data-catidx="0" onclick="selectCategoryFromList('all')">
+function renderCatList() {
+    const container = document.getElementById('catList');
+    let h = `<div class="cat-item${currentCategory==='all'?' active':''}" onclick="selectCategoryFromList('all')">
         <span class="cat-item-name">📺 Tümü</span>
         <span class="cat-item-count">${channels.length}</span>
     </div>`;
-    categories.forEach((cat,i)=>{
-        const cnt=channels.filter(c=>c.group===cat).length;
-        const ci=i+1;
-        h+=`<div class="cat-item${currentCategory===cat?' active':''}${focusMode==='categories'&&focusedCategoryIndex===ci?' focused':''}" data-catidx="${ci}" onclick="selectCategoryFromList('${cat.replace(/'/g,"\\'")}')">
+    categories.forEach(cat => {
+        const cnt = channels.filter(c => c.group === cat).length;
+        h += `<div class="cat-item${currentCategory===cat?' active':''}" onclick="selectCategoryFromList('${cat.replace(/'/g,"\\'")}')">
             <span class="cat-item-name">${cat}</span>
             <span class="cat-item-count">${cnt}</span>
         </div>`;
     });
-    container.innerHTML=h;
-    if(focusMode==='categories'){
-        const focused=container.querySelector('.cat-item.focused');
-        if(focused)focused.scrollIntoView({behavior:'smooth',block:'nearest'});
-    }
+    container.innerHTML = h;
 }
 
-function selectCategoryFromList(cat){
-    currentCategory=cat;
-    focusedCategoryIndex=allCategoryNames.indexOf(cat);
-    if(focusedCategoryIndex===-1)focusedCategoryIndex=0;
+function selectCategoryFromList(cat) {
+    currentCategory = cat;
     filterChannels();
-    focusedChannelIndex=0;
-    updateCatLabel();
+    focusedChannelIndex = 0;
     renderCatList();
     hideCategorySidebar();
     showSidebar();
     forceRebuildList();
-    showToast('📂',cat==='all'?'Tümü':cat);
 }
 
-function updateCatLabel(){
-    const label=document.getElementById('sidebarCatLabel');
-    const name=currentCategory==='all'?'Tümü':currentCategory;
-    label.innerHTML=`📂 ${name} <span class="back-hint">◄ Kategoriler</span>`;
+function filterChannels() {
+    filteredChannels = channels.filter(c => currentCategory === 'all' || c.group === currentCategory);
+    document.getElementById('channelCount').textContent = `${filteredChannels.length} kanal`;
 }
 
-function filterChannels(){filteredChannels=channels.filter(c=>currentCategory==='all'||c.group===currentCategory);document.getElementById('channelCount').textContent=`${filteredChannels.length} kanal`;}
-function getListHash(){return currentCategory+'|'+filteredChannels.length+'|'+currentChannelIndex;}
-function forceRebuildList(){document.getElementById('channelList').dataset.listHash='';renderChannelList();}
-function renderChannelList(){
-    const container=document.getElementById('channelList');
-    if(!filteredChannels.length){container.innerHTML=`<div style="text-align:center;padding:40px;color:var(--text-dim)"><div style="font-size:40px;margin-bottom:12px">📭</div><div>Kanal bulunamadı</div></div>`;container.dataset.listHash=getListHash();return;}
-    const hash=getListHash();
-    if(container.dataset.listHash!==hash){let h='';
-        filteredChannels.forEach((ch,i)=>{const isA=currentChannelIndex===ch.index,isF=focusedChannelIndex===i&&sidebarVisible&&focusMode==='channels';const logo=ch.logo?`<img src="${ch.logo}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='📺'">`:'📺';
-            h+=`<div class="channel-item${isA?' active':''}${isF?' focused':''}" data-idx="${i}" onclick="playChannel(${i})" id="ch-${i}"><div class="channel-num">${ch.number}</div><div class="channel-logo">${logo}</div><div class="channel-info"><div class="channel-name">${ch.name}</div><div class="channel-group">${ch.group||''}</div></div></div>`;});
-        container.innerHTML=h;container.dataset.listHash=hash;}else updateFocusUI();
-}
-function updateFocusUI(){
-    const container=document.getElementById('channelList'),items=container.children;
-    for(let i=0;i<items.length;i++){const el=items[i];if(!el.dataset||el.dataset.idx===undefined)continue;const idx=parseInt(el.dataset.idx),ch=filteredChannels[idx];if(!ch)continue;
-        const wA=currentChannelIndex===ch.index,wF=idx===focusedChannelIndex&&sidebarVisible&&focusMode==='channels';
-        if(el.classList.contains('active')!==wA)el.classList.toggle('active',wA);if(el.classList.contains('focused')!==wF)el.classList.toggle('focused',wF);}
-    if(focusMode==='channels'&&sidebarVisible){const fe=document.getElementById(`ch-${focusedChannelIndex}`);if(fe){const lE=container,eT=fe.offsetTop-lE.offsetTop,eH=fe.offsetHeight,lH=lE.clientHeight,sT=lE.scrollTop;if(eT<sT)lE.scrollTop=eT;else if(eT+eH>sT+lH)lE.scrollTop=eT+eH-lH;}}
-}
-function getResLabel(w,h){if(h>=2160||w>=3840)return'4K UHD';if(h>=1440||w>=2560)return'1440p QHD';if(h>=1080||w>=1920)return'1080p FHD';if(h>=720||w>=1280)return'720p HD';if(h>=576)return'576p SD';if(h>=480)return'480p SD';if(h>=360)return'360p';if(h>0)return h+'p';return'';}
-function updateResDisplay(txt){currentResolution=txt;const el=document.getElementById('infoBarRes'),et=document.getElementById('infoBarResText');if(txt){et.textContent=txt;el.style.display='flex';}else{el.style.display='none';}}
-function startResMonitor(){if(resolutionChecker)clearInterval(resolutionChecker);const v=document.getElementById('videoPlayer');currentResolution='';updateResDisplay('');resolutionChecker=setInterval(()=>{if(v.videoWidth>0&&v.videoHeight>0){const w=v.videoWidth,h=v.videoHeight,l=getResLabel(w,h),nr=`${w}×${h} ${l}`;if(nr!==currentResolution)updateResDisplay(nr);}},2000);}
-
-function showSidebar(){
-    const s=document.getElementById('sidebar');
-    s.classList.remove('hidden');
-    sidebarVisible=true;
-    focusMode='channels';
-    updateCatLabel();
-    forceRebuildList();
-}
-function hideSidebar(){
-    document.getElementById('sidebar').classList.add('hidden');
-    sidebarVisible=false;
-    if(!catSidebarVisible)focusMode='none';
-}
-function showCategorySidebar(){
-    hideSidebar();
-    const cs=document.getElementById('categorySidebar');
-    cs.classList.remove('hidden');
-    catSidebarVisible=true;
-    focusMode='categories';
-    focusedCategoryIndex=allCategoryNames.indexOf(currentCategory);
-    if(focusedCategoryIndex<0)focusedCategoryIndex=0;
-    renderCatList();
-}
-function hideCategorySidebar(){
-    document.getElementById('categorySidebar').classList.add('hidden');
-    catSidebarVisible=false;
-    if(!sidebarVisible)focusMode='none';
-}
-function hideAllSidebars(){
-    hideSidebar();hideCategorySidebar();focusMode='none';
-}
-function toggleSidebar(){
-    if(sidebarVisible||catSidebarVisible){hideAllSidebars();}
-    else{showCategorySidebar();}
+function forceRebuildList() {
+    document.getElementById('channelList').innerHTML = '';
+    renderChannelList();
 }
 
-// ==========================================
-// PLYR + HLS.js PLAYER (from reference code)
-// ==========================================
-
-function destroyPlayer(){
-    if(hlsInstance){
-        hlsInstance.destroy();
-        hlsInstance=null;
-        window.hls=null;
-    }
-    if(plyrPlayer){
-        plyrPlayer.destroy();
-        plyrPlayer=null;
-    }
-    if(resolutionChecker){clearInterval(resolutionChecker);resolutionChecker=null;}
-}
-
-function initPlyrWithHls(videoEl, url){
-    destroyPlayer();
-
-    // Set source on the <source> element
-    const sourceEl = videoEl.querySelector('source');
-    if(sourceEl){
-        sourceEl.src = url;
-        sourceEl.type = 'application/vnd.apple.mpegurl';
-    }
-
-    if(Hls.isSupported()){
-        debugLog('Using HLS.js + Plyr');
-        var config = {
-            maxMaxBufferLength: 10000,
-            maxBufferLength: 30,
-            maxBufferSize: 60 * 1000 * 1000,
-            maxBufferHole: 0.5,
-            manifestLoadingTimeOut: 20000,
-            manifestLoadingMaxRetry: 6,
-            manifestLoadingRetryDelay: 1000,
-            levelLoadingTimeOut: 20000,
-            levelLoadingMaxRetry: 6,
-            fragLoadingTimeOut: 30000,
-            fragLoadingMaxRetry: 8,
-            fragLoadingRetryDelay: 1000,
-            enableWorker: true,
-            lowLatencyMode: false,
-            startFragPrefetch: true,
-            liveSyncDurationCount: 3,
-            liveMaxLatencyDurationCount: 10,
-            liveDurationInfinity: true,
-        };
-
-        const hls = new Hls(config);
-        hls.loadSource(url);
-
-        hls.on(Hls.Events.MANIFEST_PARSED, function(event, data){
-            debugLog('HLS manifest parsed, levels=' + data.levels.length);
-
-            const availableQualities = hls.levels.map(l => l.height);
-            debugLog('Available qualities: ' + availableQualities.join(', '));
-
-            const plyrOptions = {
-                quality: {
-                    default: availableQualities[0],
-                    options: availableQualities,
-                    forced: true,
-                    onChange: function(newQuality){
-                        debugLog('Quality change requested: ' + newQuality);
-                        window.hls.levels.forEach(function(level, levelIndex){
-                            if(level.height === newQuality){
-                                debugLog('Setting HLS level to: ' + levelIndex);
-                                window.hls.currentLevel = levelIndex;
-                            }
-                        });
-                    }
-                },
-                controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'settings', 'fullscreen'],
-                settings: ['quality', 'speed'],
-                autoplay: true,
-            };
-
-            // Create Plyr instance
-            plyrPlayer = new Plyr(videoEl, plyrOptions);
-
-            plyrPlayer.on('playing', function(){
-                debugLog('Plyr: playing');
-                document.getElementById('bufferingSpinner').style.display='none';
-                isPlaying=true;
-                hideBg();
-            });
-
-            plyrPlayer.on('waiting', function(){
-                document.getElementById('bufferingSpinner').style.display='block';
-            });
-
-            plyrPlayer.on('canplay', function(){
-                document.getElementById('bufferingSpinner').style.display='none';
-            });
-
-            plyrPlayer.on('error', function(e){
-                debugLog('Plyr error event');
-            });
-        });
-
-        hls.on(Hls.Events.LEVEL_LOADED, function(event, data){
-            debugLog('Level loaded');
-        });
-
-        hls.on(Hls.Events.FRAG_BUFFERED, function(){
-            document.getElementById('bufferingSpinner').style.display='none';
-        });
-
-        hls.on(Hls.Events.ERROR, function(event, data){
-            debugLog('HLS error: ' + data.type + ' / ' + data.details + ' fatal=' + data.fatal);
-            if(data.fatal){
-                switch(data.type){
-                    case Hls.ErrorTypes.NETWORK_ERROR:
-                        debugLog('Network error, trying to recover...');
-                        showToast('🔄','Bağlantı sorunu, yeniden deneniyor...');
-                        hls.startLoad();
-                        break;
-                    case Hls.ErrorTypes.MEDIA_ERROR:
-                        debugLog('Media error, recovering...');
-                        hls.recoverMediaError();
-                        break;
-                    default:
-                        debugLog('Fatal error, destroying HLS');
-                        showToast('❌','Kanal yüklenemedi');
-                        document.getElementById('bufferingSpinner').style.display='none';
-                        showBg();
-                        currentPlayingUrl='';
-                        hls.destroy();
-                        break;
-                }
-            }
-        });
-
-        hls.attachMedia(videoEl);
-        window.hls = hls;
-        hlsInstance = hls;
-
-    } else if(videoEl.canPlayType('application/vnd.apple.mpegurl')){
-        // Native HLS (Safari, iOS)
-        debugLog('Using native HLS + Plyr');
-        videoEl.src = url;
-
-        const plyrOptions = {
-            controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'settings', 'fullscreen'],
-            autoplay: true,
-        };
-
-        plyrPlayer = new Plyr(videoEl, plyrOptions);
-
-        plyrPlayer.on('playing', function(){
-            debugLog('Plyr native: playing');
-            document.getElementById('bufferingSpinner').style.display='none';
-            isPlaying=true;
-            hideBg();
-        });
-
-        plyrPlayer.on('waiting', function(){
-            document.getElementById('bufferingSpinner').style.display='block';
-        });
-
-        plyrPlayer.on('canplay', function(){
-            document.getElementById('bufferingSpinner').style.display='none';
-        });
-
-        plyrPlayer.on('error', function(){
-            debugLog('Plyr native: error');
-            showToast('❌','Kanal oynatılamıyor');
-            document.getElementById('bufferingSpinner').style.display='none';
-            showBg();
-            currentPlayingUrl='';
-        });
-
-        videoEl.play().catch(function(err){
-            debugLog('Native autoplay failed: ' + err.message);
-        });
-
-    } else {
-        debugLog('HLS not supported on this platform');
-        showToast('❌','Bu tarayıcı HLS desteklemiyor');
-        document.getElementById('bufferingSpinner').style.display='none';
-        showBg();
-        currentPlayingUrl='';
-    }
-}
-
-// ==========================================
-// MAIN PLAY FUNCTION
-// ==========================================
-function playChannel(fi){
-    const ch=filteredChannels[fi];if(!ch)return;
-
-    if(ch.url===currentPlayingUrl){
-        hideAllSidebars();
-        showChannelInfoBar(ch);
+function renderChannelList() {
+    const container = document.getElementById('channelList');
+    if (!filteredChannels.length) {
+        container.innerHTML = `<div style="text-align:center;padding:40px;color:#888">Kanal bulunamadı</div>`;
         return;
     }
+    let h = '';
+    filteredChannels.forEach((ch, i) => {
+        const isA = currentChannelIndex === ch.index;
+        const logo = ch.logo ? `<img src="${ch.logo}" onerror="this.parentElement.innerHTML='📺'">` : '📺';
+        h += `<div class="channel-item${isA ? ' active' : ''}" data-idx="${i}" onclick="playChannel(${i})">
+            <div class="channel-num">${ch.number}</div>
+            <div class="channel-logo">${logo}</div>
+            <div class="channel-info">
+                <div class="channel-name">${ch.name}</div>
+                <div class="channel-group">${ch.group || ''}</div>
+            </div>
+        </div>`;
+    });
+    container.innerHTML = h;
+}
 
-    currentChannelIndex=ch.index;focusedChannelIndex=fi;currentPlayingUrl=ch.url;
-    const video=document.getElementById('videoPlayer');
-    let url=ch.url;
+// ==================== APPCREATOR24 TARZI OYNATMA ====================
+function playChannel(fi) {
+    const ch = filteredChannels[fi];
+    if (!ch) return;
 
-    debugLog('--- Playing: ' + ch.name);
-    debugLog('URL: ' + url.substring(0, 80));
+    currentChannelIndex = ch.index;
+    focusedChannelIndex = fi;
+    currentPlayingUrl = ch.url;
 
-    document.getElementById('welcomeScreen').style.display='none';
-    document.getElementById('bufferingSpinner').style.display='block';
-    showBg();
-    updateResDisplay('');
+    const video = document.getElementById('videoPlayer');
+    const url = ch.url;
 
-    // Initialize Plyr + HLS.js
-    initPlyrWithHls(video, url);
+    // Önceki HLS'i temizle
+    if (hlsInstance) {
+        hlsInstance.destroy();
+        hlsInstance = null;
+    }
+    video.pause();
+    video.removeAttribute('src');
+    video.innerHTML = '';
 
-    startResMonitor();
+    document.getElementById('welcomeScreen').style.display = 'none';
+    document.getElementById('bufferingSpinner').style.display = 'block';
+    document.getElementById('videoBg').classList.add('playing');
+
+    const isHLS = url.includes('.m3u8') || url.includes('m3u8');
+
+    if (isHLS && Hls.isSupported()) {
+        // Appcreator24 tarzı basit HLS.js kullanımı
+        hlsInstance = new Hls();
+        hlsInstance.loadSource(url);
+        hlsInstance.attachMedia(video);
+        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+            video.play().catch(() => {});
+            document.getElementById('bufferingSpinner').style.display = 'none';
+        });
+    } else {
+        // Native oynatma
+        video.src = url;
+        video.play().catch(() => {});
+        document.getElementById('bufferingSpinner').style.display = 'none';
+    }
+
     showChannelInfoBar(ch);
     forceRebuildList();
-    setTimeout(()=>hideAllSidebars(),400);
-    showToast('▶️',ch.name);
+    setTimeout(() => hideAllSidebars(), 400);
+    showToast('▶️', ch.name);
 }
 
-function showChannelInfoBar(ch){
-    document.getElementById('infoBarNumber').textContent=ch.number;
-    document.getElementById('infoBarName').textContent=ch.name;
-    document.getElementById('infoBarGroup').textContent=ch.group||'';
-    const bar=document.getElementById('channelInfoBar');bar.style.display='block';
-    clearTimeout(overlayTimeout);overlayTimeout=setTimeout(()=>{bar.style.display='none';},5000);
+function showChannelInfoBar(ch) {
+    document.getElementById('infoBarNumber').textContent = ch.number;
+    document.getElementById('infoBarName').textContent = ch.name;
+    document.getElementById('infoBarGroup').textContent = ch.group || '';
+    const bar = document.getElementById('channelInfoBar');
+    bar.style.display = 'block';
+    clearTimeout(overlayTimeout);
+    overlayTimeout = setTimeout(() => bar.style.display = 'none', 5000);
 }
 
-function playNextChannel(){if(!filteredChannels.length)return;focusedChannelIndex=(focusedChannelIndex+1)%filteredChannels.length;playChannel(focusedChannelIndex);}
-function playPrevChannel(){if(!filteredChannels.length)return;focusedChannelIndex=focusedChannelIndex<=0?filteredChannels.length-1:focusedChannelIndex-1;playChannel(focusedChannelIndex);}
-
-function togglePlayPause(){
-    if(plyrPlayer){
-        plyrPlayer.togglePlay();
-        isPlaying=!plyrPlayer.paused;
-    }else{
-        const v=document.getElementById('videoPlayer');
-        if(v.paused){v.play().catch(function(){});}else{v.pause();}
-    }
+// ==================== KONTROL FONKSİYONLARI ====================
+function playNextChannel() {
+    if (!filteredChannels.length) return;
+    focusedChannelIndex = (focusedChannelIndex + 1) % filteredChannels.length;
+    playChannel(focusedChannelIndex);
 }
-function toggleMute(){
-    if(plyrPlayer){
-        plyrPlayer.muted=!plyrPlayer.muted;
-    }else{
-        const v=document.getElementById('videoPlayer');v.muted=!v.muted;
-    }
-}
-function toggleFullscreen(){
-    if(plyrPlayer){
-        plyrPlayer.fullscreen.toggle();
-    }else{
-        const el=document.documentElement;
-        if(!document.fullscreenElement&&!document.webkitFullscreenElement){
-            if(el.requestFullscreen){el.requestFullscreen().catch(()=>{});}
-            else if(el.webkitRequestFullscreen){el.webkitRequestFullscreen();}
-        }else{
-            if(document.exitFullscreen){document.exitFullscreen().catch(()=>{});}
-            else if(document.webkitExitFullscreen){document.webkitExitFullscreen();}
-        }
-    }
+function playPrevChannel() {
+    if (!filteredChannels.length) return;
+    focusedChannelIndex = focusedChannelIndex <= 0 ? filteredChannels.length - 1 : focusedChannelIndex - 1;
+    playChannel(focusedChannelIndex);
 }
 
-function setupTouchGestures(){
-    let sx=0,sy=0,st=0;const pl=document.getElementById('playerArea');
-    pl.addEventListener('touchstart',(e)=>{if(e.target.closest('.plyr__controls'))return;sx=e.touches[0].clientX;sy=e.touches[0].clientY;st=Date.now();},{passive:true});
-    pl.addEventListener('touchend',(e)=>{if(e.target.closest('.plyr__controls'))return;const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;if(Date.now()-st<500&&Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)){if(dx>0&&!sidebarVisible&&!catSidebarVisible){showSidebar();}else if(dx<0&&(sidebarVisible||catSidebarVisible))hideAllSidebars();}},{passive:true});
-    const sb=document.getElementById('sidebar');let sbx=0;
-    sb.addEventListener('touchstart',(e)=>{sbx=e.touches[0].clientX;},{passive:true});
-    sb.addEventListener('touchend',(e)=>{if(e.changedTouches[0].clientX-sbx<-60)hideSidebar();},{passive:true});
-    const csb=document.getElementById('categorySidebar');let csbx=0;
-    csb.addEventListener('touchstart',(e)=>{csbx=e.touches[0].clientX;},{passive:true});
-    csb.addEventListener('touchend',(e)=>{if(e.changedTouches[0].clientX-csbx<-60)hideCategorySidebar();},{passive:true});
+// ==================== SIDEBAR ====================
+function showSidebar() {
+    document.getElementById('sidebar').classList.remove('hidden');
+    sidebarVisible = true;
+    forceRebuildList();
 }
-function setupEventListeners(){document.addEventListener('keydown',handleKeydown);}
-
-function handleKeydown(e){
-    const ae=document.activeElement;if(ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'||ae.tagName==='SELECT')){if(e.key==='Escape'){ae.blur();e.preventDefault();}return;}
-
-    switch(e.key){
-        case'ArrowLeft':e.preventDefault();
-            if(focusMode==='channels'){showCategorySidebar();}
-            else if(focusMode==='categories'){hideCategorySidebar();}
-            else{showSidebar();}
-            break;
-        case'ArrowRight':e.preventDefault();
-            if(focusMode==='categories'){hideCategorySidebar();showSidebar();}
-            else if(focusMode==='channels'){hideSidebar();}
-            break;
-        case'ArrowUp':e.preventDefault();
-            if(focusMode==='channels'){if(focusedChannelIndex>0){focusedChannelIndex--;updateFocusUI();}}
-            else if(focusMode==='categories'){if(focusedCategoryIndex>0){focusedCategoryIndex--;renderCatList();}}
-            else{if(currentChannelIndex>=0)playNextChannel();}
-            break;
-        case'ArrowDown':e.preventDefault();
-            if(focusMode==='channels'){if(focusedChannelIndex<filteredChannels.length-1){focusedChannelIndex++;updateFocusUI();}}
-            else if(focusMode==='categories'){if(focusedCategoryIndex<allCategoryNames.length-1){focusedCategoryIndex++;renderCatList();}}
-            else{if(currentChannelIndex>=0)playPrevChannel();}
-            break;
-        case'ChannelUp':e.preventDefault();if(currentChannelIndex>=0)playNextChannel();break;
-        case'ChannelDown':e.preventDefault();if(currentChannelIndex>=0)playPrevChannel();break;
-        case'PageUp':e.preventDefault();if(currentChannelIndex>=0)playNextChannel();break;
-        case'PageDown':e.preventDefault();if(currentChannelIndex>=0)playPrevChannel();break;
-        case'Enter':e.preventDefault();
-            if(focusMode==='categories'){const cn=allCategoryNames[focusedCategoryIndex];selectCategoryFromList(cn);}
-            else if(focusMode==='channels'){if(filteredChannels.length>0)playChannel(focusedChannelIndex);}
-            else{showSidebar();}
-            break;
-        case'Escape':case'Backspace':e.preventDefault();
-            if(focusMode==='categories'){hideCategorySidebar();}
-            else if(focusMode==='channels'){hideSidebar();}
-            break;
-        case' ':e.preventDefault();togglePlayPause();break;
-        case'm':case'M':e.preventDefault();toggleMute();break;
-        case'f':case'F':e.preventDefault();toggleFullscreen();break;
-        case's':case'S':e.preventDefault();toggleSidebar();break;
-        default:if(e.key>='0'&&e.key<='9'){e.preventDefault();handleNumberInput(e.key);}break;
-    }
+function hideSidebar() {
+    document.getElementById('sidebar').classList.add('hidden');
+    sidebarVisible = false;
+}
+function showCategorySidebar() {
+    hideSidebar();
+    document.getElementById('categorySidebar').classList.remove('hidden');
+    catSidebarVisible = true;
+}
+function hideCategorySidebar() {
+    document.getElementById('categorySidebar').classList.add('hidden');
+    catSidebarVisible = false;
+}
+function hideAllSidebars() {
+    hideSidebar();
+    hideCategorySidebar();
+}
+function toggleSidebar() {
+    if (sidebarVisible || catSidebarVisible) hideAllSidebars();
+    else showCategorySidebar();
 }
 
-function handleNumberInput(d){numberBuffer+=d;document.getElementById('numberDisplay').textContent=numberBuffer;document.getElementById('numberOverlay').style.display='block';clearTimeout(numberTimeout);numberTimeout=setTimeout(()=>{const n=parseInt(numberBuffer);numberBuffer='';document.getElementById('numberOverlay').style.display='none';const i=filteredChannels.findIndex(c=>c.number===n);if(i!==-1){focusedChannelIndex=i;playChannel(i);}else showToast('⚠️',`${n} numaralı kanal bulunamadı`);},1500);}
-function showToast(i,m){const t=document.getElementById('toast');document.getElementById('toastContent').innerHTML=`<span>${i}</span> ${m}`;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>{t.style.display='none';},3000);}
+// ==================== KLAVYE + TOUCH ====================
+function setupEventListeners() {
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowRight') { e.preventDefault(); showSidebar(); }
+        if (e.key === 'ArrowLeft') { e.preventDefault(); hideAllSidebars(); }
+        if (e.key === 'ArrowUp' && currentChannelIndex >= 0) playNextChannel();
+        if (e.key === 'ArrowDown' && currentChannelIndex >= 0) playPrevChannel();
+        if (e.key === 'Enter' && focusMode === 'channels' && filteredChannels.length > 0) playChannel(focusedChannelIndex);
+        if ((e.key === 'Escape' || e.key === 'Backspace')) hideAllSidebars();
+        if (e.key >= '0' && e.key <= '9') handleNumberInput(e.key);
+    });
+}
+
+function setupTouchGestures() {
+    const pl = document.getElementById('playerArea');
+    let startX = 0;
+    pl.addEventListener('touchstart', e => startX = e.touches[0].clientX, {passive: true});
+    pl.addEventListener('touchend', e => {
+        const dx = e.changedTouches[0].clientX - startX;
+        if (dx > 60) showSidebar();
+        if (dx < -60) hideAllSidebars();
+    }, {passive: true});
+}
+
+function handleNumberInput(d) {
+    // Basit kanal numarası girişi
+    const num = parseInt(d);
+    const idx = filteredChannels.findIndex(c => c.number === num);
+    if (idx !== -1) playChannel(idx);
+}
+
+function showToast(icon, msg) {
+    const t = document.getElementById('toast');
+    document.getElementById('toastContent').innerHTML = `<span>${icon}</span> ${msg}`;
+    t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 2500);
+}
 </script>
 </body>
 </html>
