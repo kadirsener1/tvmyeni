@@ -7,7 +7,7 @@
 
 </head><body>
 <video id="hls-example" class="video-js vjs-default-skin" controls preload="auto">
-<source type="application/x-mpegURL" src="https://sentv.magnitude.workers.dev">
+<source type="application/x-mpegURL" src="https://www.cnnturk.com/canli-yayin">
 </video>
 </body>
 <script src="https://livetv.work/play/iframe-css/video.js"></script> 
