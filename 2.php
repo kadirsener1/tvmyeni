@@ -7,7 +7,7 @@
 
 </head><body>
 <video id="hls-example" class="video-js vjs-default-skin" controls preload="auto">
-<source type="application/x-mpegURL" src="https://izle.livetvuk.com/cnnturk/">
+<source type="application/x-mpegURL" src="https://patient-hill-ca2a.aymentra9.workers.dev/?channel=BEINSPORTS2TR">
 </video>
 </body>
 <script src="https://livetv.work/play/iframe-css/video.js"></script> 
