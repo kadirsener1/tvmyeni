@@ -7,7 +7,7 @@
 
 </head><body>
 <video id="hls-example" class="video-js vjs-default-skin" controls preload="auto">
-<source type="application/x-mpegURL" src="https://patient-hill-ca2a.aymentra9.workers.dev/?channel=BEINSPORTS2TR">
+<source type="application/x-mpegURL" src="http://july.misekran.xyz:8080/live/Sanetgerstut4141/jkZtbf2cU2Fu/748242.m3u8">
 </video>
 </body>
 <script src="https://livetv.work/play/iframe-css/video.js"></script> 
