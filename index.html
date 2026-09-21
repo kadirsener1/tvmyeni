@@ -68,7 +68,7 @@
         #videoContainer{width:100%;height:100%;position:relative;background:#000}
         #videoPlayer{width:100%;height:100%;background:transparent;object-fit:contain;transform:translateZ(0);-webkit-transform:translateZ(0);position:relative;z-index:2}
         #iframePlayer{width:100%;height:100%;background:#000;border:none;position:relative;z-index:2;display:none}
-        #iframeOverlay{position:absolute;top:0;left:0;width:100%;height:100%;z-index:4;background:transparent;display:none}
+        #iframeOverlay{position:absolute;top:0;left:0;width:100%;height:100%;z-index:4;background:transparent;display:none;pointer-events:none}
 
         #videoBg{position:absolute;top:0;left:0;width:100%;height:100%;z-index:3;pointer-events:none;background-color:#000;background-image:url('https://raw.githubusercontent.com/kadirsener1/tvmyeni/refs/heads/main/bg.JPG');background-size:cover;background-position:center;background-repeat:no-repeat;transition:opacity .4s ease}
         #videoBg.playing{opacity:0;pointer-events:none}
@@ -219,6 +219,9 @@
     </style>
 </head>
 <body>
+<!-- Kumanda Odağı Geri Kazanım Köprüsü -->
+<button id="remoteFocusBridge" style="position:absolute; top:-1000px; left:-1000px; opacity:0;" tabindex="-1"></button>
+
 <div id="loadingScreen">
     <div class="loader-logo">📺</div>
     <div class="loader-text">SENTV</div>
@@ -374,8 +377,28 @@ document.addEventListener('DOMContentLoaded',async()=>{
         showCategorySidebar();
     },2000);
     setupEventListeners();setupMouseEvents();setupTouchGestures();
+    setupFocusRecovery(); // Akıllı Odak Kurtarma Dinleyicisi
     setInterval(async()=>{const pi=currentChannelIndex;await loadM3U(M3U_URL);if(pi>=0&&pi<channels.length)currentChannelIndex=pi;},AUTO_REFRESH);
 });
+
+// Kumanda odağını kaybetmemek için dinleyici
+function setupFocusRecovery() {
+    window.addEventListener('blur', function() {
+        if (document.activeElement === document.getElementById('iframePlayer')) {
+            debugLog('Focus shifted to iframe. Auto-refocusing remote in 3 seconds...');
+            setTimeout(restoreRemoteFocus, 3000); // 3 sn sonra odağı geri çek
+        }
+    });
+}
+
+function restoreRemoteFocus() {
+    const bridge = document.getElementById('remoteFocusBridge');
+    if (bridge) {
+        bridge.focus();
+        window.focus();
+        debugLog('Kumanda odağı başarıyla geri kazanıldı.');
+    }
+}
 
 async function loadM3U(url){
     try{const r=await fetch(url);if(!r.ok)throw 0;channels=parseM3U(await r.text());debugLog('M3U loaded direct: '+channels.length+' ch');}
@@ -612,6 +635,21 @@ function isIframeStream(url, ch) {
            lower.startsWith('iframe:');
 }
 
+// URL'yi otomatik başlatma/sessiz mod parametreleriyle besleyen fonksiyon
+function prepareIframeUrl(url) {
+    try {
+        const urlObj = new URL(url);
+        urlObj.searchParams.set('autoplay', '1');
+        urlObj.searchParams.set('muted', '1');
+        urlObj.searchParams.set('mute', '1');
+        urlObj.searchParams.set('controls', '1');
+        return urlObj.toString();
+    } catch(e) {
+        const separator = url.includes('?') ? '&' : '?';
+        return url + separator + 'autoplay=1&muted=1&mute=1';
+    }
+}
+
 // ==========================================
 // MAIN PLAY FUNCTION
 // ==========================================
@@ -695,27 +733,31 @@ async function playChannel(fi){
     forceRebuildList();
     setTimeout(()=>hideAllSidebars(),400);
     showToast('▶️',ch.name);
-    window.focus(); // Kumanda odağını koru
+    restoreRemoteFocus();
 }
 
 function playIframe(iframe, overlay, url, ch) {
     iframe.style.display = 'block';
-    overlay.style.display = 'block'; // Odak koruyucu katmanı aktif et
-    iframe.src = url;
+    overlay.style.display = 'block'; 
+    
+    // Autoplay ve Mute parametrelerini ekleyerek yükle
+    const preparedUrl = prepareIframeUrl(url);
+    iframe.src = preparedUrl;
+    
     isPlaying = true;
     document.getElementById('playPauseBtn').textContent = '⏸';
 
     iframe.onload = function() {
         document.getElementById('bufferingSpinner').style.display = 'none';
         hideBg();
-        debugLog('Iframe loaded successfully: ' + url);
-        window.focus(); // Kumanda odağını tekrar tarayıcıya al
+        debugLog('Iframe loaded successfully: ' + preparedUrl);
+        restoreRemoteFocus();
     };
 
     setTimeout(() => {
         document.getElementById('bufferingSpinner').style.display = 'none';
         hideBg();
-        window.focus();
+        restoreRemoteFocus();
     }, 2000);
 }
 
@@ -1074,7 +1116,7 @@ function playPrevChannel(){if(!filteredChannels.length)return;focusedChannelInde
 function togglePlayPause(){
     const iframe = document.getElementById('iframePlayer');
     if(iframe && iframe.style.display !== 'none') {
-        showControls(); // Iframe modunda ekran kontrolünü göster
+        showControls(); 
         return;
     }
     const v=document.getElementById('videoPlayer');
