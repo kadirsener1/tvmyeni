@@ -68,6 +68,7 @@
         #videoContainer{width:100%;height:100%;position:relative;background:#000}
         #videoPlayer{width:100%;height:100%;background:transparent;object-fit:contain;transform:translateZ(0);-webkit-transform:translateZ(0);position:relative;z-index:2}
         #iframePlayer{width:100%;height:100%;background:#000;border:none;position:relative;z-index:2;display:none}
+        #iframeOverlay{position:absolute;top:0;left:0;width:100%;height:100%;z-index:4;background:transparent;display:none}
 
         #videoBg{position:absolute;top:0;left:0;width:100%;height:100%;z-index:3;pointer-events:none;background-color:#000;background-image:url('https://raw.githubusercontent.com/kadirsener1/tvmyeni/refs/heads/main/bg.JPG');background-size:cover;background-position:center;background-repeat:no-repeat;transition:opacity .4s ease}
         #videoBg.playing{opacity:0;pointer-events:none}
@@ -119,7 +120,6 @@
         .number-hint{font-size:12px;color:var(--text-dim);margin-top:4px}
         #mobileMenuBtn{display:none;position:fixed;top:15px;left:15px;z-index:900;width:44px;height:44px;border-radius:12px;background:rgba(10,10,26,.9);border:1px solid var(--border);color:var(--text);font-size:20px;cursor:pointer;align-items:center;justify-content:center;backdrop-filter:blur(10px)}
 
-        /* Debug panel for Android troubleshooting */
         #debugPanel{position:fixed;bottom:10px;left:10px;background:rgba(0,0,0,.9);color:#0f0;font-family:monospace;font-size:10px;padding:8px;border-radius:6px;z-index:99999;max-width:300px;max-height:200px;overflow-y:auto;display:none;word-wrap:break-word;line-height:1.4}
         #debugPanel.visible{display:block}
 
@@ -256,6 +256,7 @@
             <div id="videoBg"></div>
             <video id="videoPlayer" playsinline webkit-playsinline preload="auto" x-webkit-airplay="allow" crossorigin="anonymous"></video>
             <iframe id="iframePlayer" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+            <div id="iframeOverlay"></div>
             <div id="welcomeScreen">
                 <div class="welcome-icon">📺</div>
                 <div class="welcome-title">SENTV</div>
@@ -626,6 +627,7 @@ async function playChannel(fi){
     currentChannelIndex=ch.index;focusedChannelIndex=fi;currentPlayingUrl=ch.url;
     const video=document.getElementById('videoPlayer');
     const iframe=document.getElementById('iframePlayer');
+    const overlay=document.getElementById('iframeOverlay');
     let url=ch.url;
 
     debugLog('--- Playing: ' + ch.name);
@@ -644,6 +646,7 @@ async function playChannel(fi){
 
     iframe.src = 'about:blank';
     iframe.style.display = 'none';
+    overlay.style.display = 'none';
     updateResDisplay('');
 
     document.getElementById('welcomeScreen').style.display='none';
@@ -652,7 +655,7 @@ async function playChannel(fi){
 
     if (isIframeStream(url, ch)) {
         debugLog('Strategy: Iframe Playback (Auto Detected)');
-        playIframe(iframe, url, ch);
+        playIframe(iframe, overlay, url, ch);
     } else {
         video.style.display = 'block';
         const isHLS = /\.m3u8/i.test(url) || /m3u8/i.test(url) || url.includes('vavoo') ||
@@ -692,10 +695,12 @@ async function playChannel(fi){
     forceRebuildList();
     setTimeout(()=>hideAllSidebars(),400);
     showToast('▶️',ch.name);
+    window.focus(); // Kumanda odağını koru
 }
 
-function playIframe(iframe, url, ch) {
+function playIframe(iframe, overlay, url, ch) {
     iframe.style.display = 'block';
+    overlay.style.display = 'block'; // Odak koruyucu katmanı aktif et
     iframe.src = url;
     isPlaying = true;
     document.getElementById('playPauseBtn').textContent = '⏸';
@@ -704,11 +709,13 @@ function playIframe(iframe, url, ch) {
         document.getElementById('bufferingSpinner').style.display = 'none';
         hideBg();
         debugLog('Iframe loaded successfully: ' + url);
+        window.focus(); // Kumanda odağını tekrar tarayıcıya al
     };
 
     setTimeout(() => {
         document.getElementById('bufferingSpinner').style.display = 'none';
         hideBg();
+        window.focus();
     }, 2000);
 }
 
@@ -1066,7 +1073,10 @@ function playPrevChannel(){if(!filteredChannels.length)return;focusedChannelInde
 
 function togglePlayPause(){
     const iframe = document.getElementById('iframePlayer');
-    if(iframe && iframe.style.display !== 'none') return;
+    if(iframe && iframe.style.display !== 'none') {
+        showControls(); // Iframe modunda ekran kontrolünü göster
+        return;
+    }
     const v=document.getElementById('videoPlayer');
     if(v.paused){v.play().catch(function(){});isPlaying=true;document.getElementById('playPauseBtn').textContent='⏸';}
     else{v.pause();isPlaying=false;document.getElementById('playPauseBtn').textContent='▶️';}
@@ -1096,7 +1106,19 @@ function tryVideoFullscreen(){
     else if(video.webkitRequestFullscreen){video.webkitRequestFullscreen();}
 }
 
-function setupMouseEvents(){const p=document.getElementById('playerArea');p.addEventListener('mousemove',showControls);p.addEventListener('click',(e)=>{if(e.target===document.getElementById('videoPlayer')||e.target===document.getElementById('videoContainer')||e.target===document.getElementById('iframePlayer'))showControls();});p.addEventListener('touchstart',showControls,{passive:true});}
+function setupMouseEvents(){
+    const p=document.getElementById('playerArea');
+    p.addEventListener('mousemove',showControls);
+    p.addEventListener('click',(e)=>{
+        if(e.target===document.getElementById('videoPlayer') || 
+           e.target===document.getElementById('videoContainer') || 
+           e.target===document.getElementById('iframePlayer') ||
+           e.target===document.getElementById('iframeOverlay')) {
+            showControls();
+        }
+    });
+    p.addEventListener('touchstart',showControls,{passive:true});
+}
 function showControls(){const c=document.getElementById('playerControls');c.classList.add('visible');clearTimeout(controlsTimeout);controlsTimeout=setTimeout(()=>c.classList.remove('visible'),4000);}
 function setupTouchGestures(){
     let sx=0,sy=0,st=0;const pl=document.getElementById('playerArea');
